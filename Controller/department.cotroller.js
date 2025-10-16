@@ -1,13 +1,18 @@
 
-const userService = require('../Service/user.service')
+const departmentService = require('../Service/department.service')
 
-exports.createUser = async function(req,res){
+
+
+exports.createDepartment = async function(req,res){
 
     try{
 
-        const {name,comapny_id,email,mobile,desgnation,password} = req.body
+        const {manager_id,dept_name,company_id} = req.body
 
-        const result = await userService.createUser({name,comapny_id,email,mobile,desgnation,password})
+        const modifyDeptname = dept_name + '_' +company_id
+        //marketing_2
+
+        const result = await departmentService.createDepartment({manager_id,modifyDeptname,company_id})
 
         res.status(200).json({
             success :true,
@@ -30,7 +35,7 @@ exports.createUser = async function(req,res){
 }
 
 
-exports.createDepartment = async function(req,res){
+exports.getAllDepartment = async function(req,res){
 
     try{
 

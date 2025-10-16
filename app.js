@@ -1,24 +1,18 @@
 const  express = require("express");
-// import dotenv from "dotenv";
-import routes from "./routes/index.js";
-// import sequelize from "./config/db.config.js";
-// import errorMiddleware from "./middleware/error.middleware.js";
 
-// dotenv.config();
+import routes from "./routes/index.js";
+
 
 const app = express();
 //middelware -- 
 app.use(express.json());
-// http://localhost:4000/api/v1/user/adduser
-// http://localhost:4000/api/v1/user/deleteuser
-// http://localhost:4000/api/v1/user/updateuser
 
-// http://localhost:4000/api/v1/attandnce/getattend
-// http://localhost:4000/api/v1/attandnce/insertattendcne
 
 app.use("/api/v1", routes);
 app.use(errorMiddleware);
+localhost:4000/api/v1/users/adduser
 
+localhost:4000/api/v1/companies
 sequelize.sync({ alter: false }).then(() => console.log("Database connected ✅"));
 
 const PORT = process.env.PORT || 4000;
