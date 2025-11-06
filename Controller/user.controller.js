@@ -1,13 +1,15 @@
 
 const userService = require('../Service/user.service')
 
-exports.createUser = async function(req,res){
+exports.createUser = async (req,res) =>{
 
     try{
 
-        const {name,comapny_id,email,mobile,desgnation,password} = req.body
+        const {name,comapny_id,email,mobile,desgnation,Role,address,city,pincode} = req.body
 
-        const result = await userService.createUser({name,comapny_id,email,mobile,desgnation,password})
+        let newmobleno = '91' + mobile
+
+        const result = await userService.createUser( {name,comapny_id,email,mobile,desgnation,Role,address,city,pincode})
 
         res.status(200).json({
             success :true,
