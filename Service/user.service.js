@@ -1,22 +1,95 @@
+const db = require("../config/db");
 
-exports.createUser = async function(data){
+//Create User
+exports.createUser = async (data) => {
+  try {
+    const result = await db.query(
+      `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [
+        data.name,
+        data.company_id,
+        data.email,
+        data.mobile,
+        data.designation,
+        data.role,
+        data.address,
+        data.city,
+        data.pincode || null,
+      ]
+    );
 
-    try{
-//dev1234 - hash - encoding,decoding(2 way mechanism)/ hashing(1 way)
-//kdnnbrnoijg69 -
-// vjbbiu6956859# - no reverse
-        //first check with db if user already exist or not
-        //  with email and mobile
-        //if exist throw error
-        // if email exist - email already exist
-        //if mobile exist send mobile laread exist
-        // throw ner Error("User Already exist")
+    return result.rows[0];
+  } catch (error) {
+    return error;
+  }
+};
 
-        //make hash password and store it 
-        //use bcryptjs and convert it to hashpassowrd
-        // insert all the data into users ttable
-    }catch(error){
-        return error
-    }
+//ReadUser
 
-}
+exports.getAllUsers = async () => {
+  try {
+    const result = await db.query(`SELECT * FROM users ORDER BY id DESC`);
+    return result.rows;
+  } catch (error) {
+    throw error;
+  }
+};
+
+//ReadUser by id
+exports.getUserById = async (id) => {
+  try {
+    const result = await db.query(`SELECT * FROM users WHERE id= $1`, [id]);
+    return result.rows;
+  } catch (error) {
+    return error;
+  }
+};
+
+// Update User
+exports.updateUser = async (id, data) => {
+  try {
+    const result = await db.query(
+      `UPDATE users SET
+        name=$1,
+        company_id=$2,
+        email=$3,
+        mobile=$4,
+        designation=$5,
+        role=$6,
+        address=$7,
+        city=$8,
+        pincode=$9,
+        updated_at=NOW()
+      WHERE id=$10
+      RETURNING *`,
+      [
+        data.name,
+        data.company_id,
+        data.email,
+        data.mobile,
+        data.designation,
+        data.role,
+        data.address,
+        data.city,
+        data.pincode,
+        id,
+      ]
+    );
+
+    return result.rows;
+  } catch (error) {
+    throw error;
+  }
+};
+
+//Delete User
+exports.deleteUser = async (id) => {
+  try {
+    const result = await db.query(`DELETE FROM users WHERE id=$1 RETURNING *`, [
+      id,
+    ]);
+    return result.rows;
+  } catch (error) {
+    throw error;
+  }
+};

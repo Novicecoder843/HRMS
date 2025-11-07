@@ -1,19 +1,21 @@
-const  express = require("express");
+const express=require("express")
 
-import routes from "./routes/index.js";
+const routes= require("./Routes/index.js")
 
 
-const app = express();
-//middelware -- 
+const app=express();
+
 app.use(express.json());
 
 
-app.use("/api/v1", routes);
-app.use(errorMiddleware);
-localhost:4000/api/v1/users/adduser
+app.use("/api/v1",routes)
 
-localhost:4000/api/v1/companies
-sequelize.sync({ alter: false }).then(() => console.log("Database connected ✅"));
+app.get('/getdata',(req,res)=>{
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+res.send({data:[],success:true,message:"server is running"})
+
+})
+
+
+const PORT=process.env.PORT || 4000;
+app.listen(PORT,()=>console.log(`Server running on port ${PORT}`));
