@@ -164,3 +164,27 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+//Bulk user insert
+exports.bulkInsertUsers = async (req, res) => {
+  try {
+    const users = req.body.users;
+
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "users array is required",
+      });
+    }
+    const result = await userService.bulkInsertUsers(users);
+
+    return res.status(201).json({
+      success: true,
+      message: `${result.rowCount} users inserted successfully`,
+      rowCount: result.rowCount,
+    });
+  } catch (err) {
+    console.error("bulkInsertUsers Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

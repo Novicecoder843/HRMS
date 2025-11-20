@@ -93,3 +93,64 @@ exports.deleteUser = async (id) => {
     throw error;
   }
 };
+
+//Bulk user insert
+exports.bulkInsertUsers=async(users)=>{
+if(!users||users.length===0){
+  throw new Error("Users array is empty")
+}
+ const columns = [
+    "name",
+    "company_id",
+    "email",
+    "mobile",
+    "designation",
+    "role",
+    "address",
+    "city",
+    "pincode",
+  ];
+ const values = [];
+  const rowPlaceholders = users.map((u, rowIndex) => {
+    const startIndex = rowIndex * columns.length; // 0-based
+    
+    values.push(
+      u.name || null,
+      u.company_id || null,
+      u.email || null,
+      u.mobile || null,
+      u.designation || null,
+      u.role || null,
+      u.address || null,
+      u.city || null,
+      u.pincode || null
+    );
+
+    const placeholders = [];
+    for (let i = 1; i <= columns.length; i++) {
+      placeholders.push(`$${startIndex + i}`);
+    }
+    return `(${placeholders.join(", ")})`;
+  });
+
+  const query = `
+    INSERT INTO users (${columns.join(", ")})
+    VALUES ${rowPlaceholders.join(", ")}
+    RETURNING id
+  `;
+
+  // Use transaction (begin/commit) for safety
+  const client = await db.pgConnection.connect();
+  try {
+    await client.query("BEGIN");
+    const res = await client.query(query, values);
+    await client.query("COMMIT");
+    // res.rowCount gives number of rows returned by RETURNING (should match users.length)
+    return { rowCount: res.rowCount, rows: res.rows };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}

@@ -17,4 +17,7 @@ router.put('/updateuser/:id',userController.updateUser)
 //Delete user
 router.delete('/delete/:id',userController.deleteUser) 
 
+//bulk-insert
+router.post("/bulk-insert",userController.bulkInsertUsers)
+
 module.exports = router;
