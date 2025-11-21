@@ -6,7 +6,7 @@ const userController = require("../Controller/user.controller");
 router.post("/adduser", userController.createUser);
 
 //Read All
-router.get('/all',userController.getAllUsers);
+router.get('/getall',userController.getAllUsers);
 
 //Read by id path params, query params
 router.get('/getuser/:id',userController.getUserById)

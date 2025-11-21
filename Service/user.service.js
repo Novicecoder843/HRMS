@@ -24,12 +24,30 @@ exports.createUser = async (data) => {
   }
 };
 
-//ReadUser
+//ReadUser by pagination
 
-exports.getAllUsers = async () => {
+exports.getAllUsers = async (page,limit) => {
   try {
-    const result = await db.query(`SELECT * FROM users ORDER BY id DESC`);
-    return result.rows;
+    page=Number(page);
+    limit=Number(limit);
+
+    const offset=(page-1)*limit
+
+    const totalData= await db.query(`SELECT COUNT(*) FROM users`);
+    const total = Number(totalData.rows[0].count)
+
+    const result=await db.query(
+      `SELECT * FROM users ORDER BY id DESC LIMIT $1 OFFSET $2 `,
+      [limit,offset]
+    );
+
+    return{
+      page,
+      limit,
+      total,
+      totalPages:Math.ceil(total/limit),
+      data:result.rows
+    }
   } catch (error) {
     throw error;
   }

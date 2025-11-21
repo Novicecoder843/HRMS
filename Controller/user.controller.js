@@ -42,22 +42,26 @@ exports.createUser = async (req, res) => {
   }
 };
 
-//Read All
+//Read All by pagination
 exports.getAllUsers = async (req, res) => {
   try {
-    const result = await userService.getAllUsers();
+    let page=parseInt(req.query.page)|| 1;
+    let limit = parseInt(req.query.limit)||10;
+
+    let offset =(page-1)*limit;
+
+    const users = await userService.getAllUsers(page, limit);
     res.status(200).json({
       success: true,
-      data: result,
-    });
+      message: "Users fetched successfully",
+      ...users
+    })
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
-    });
+      message: error.message});
   }
-};
-
+}
 //Read by ids
 exports.getUserById = async (req, res) => {
   try {
