@@ -20,4 +20,10 @@ router.delete('/delete/:id',userController.deleteUser)
 //bulk-insert
 router.post("/bulk-insert",userController.bulkInsertUsers)
 
+//Login
+router.post("/login",userController.loginUser);
+
+//soft delete user
+router.delete("/user/:id",userController.softDeleteUser);
+
 module.exports = router;

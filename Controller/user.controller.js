@@ -1,5 +1,6 @@
 const userService = require("../Service/user.service");
-
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 //Creat User
 exports.createUser = async (req, res) => {
   try {
@@ -13,8 +14,10 @@ exports.createUser = async (req, res) => {
       address,
       city,
       pincode,
+      password,
     } = req.body;
     let newMobile = "91" + mobile;
+    const hashPassword = await bcrypt.hash(password, 10);
     const result = await userService.createUser({
       name,
       company_id,
@@ -25,6 +28,7 @@ exports.createUser = async (req, res) => {
       address,
       city,
       pincode,
+      password: hashPassword,
     });
     res.status(200).json({
       success: true,
@@ -45,23 +49,24 @@ exports.createUser = async (req, res) => {
 //Read All by pagination
 exports.getAllUsers = async (req, res) => {
   try {
-    let page=parseInt(req.query.page)|| 1;
-    let limit = parseInt(req.query.limit)||10;
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
 
-    let offset =(page-1)*limit;
+    let offset = (page - 1) * limit;
 
     const users = await userService.getAllUsers(page, limit);
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      ...users
-    })
+      ...users,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message});
+      message: error.message,
+    });
   }
-}
+};
 //Read by ids
 exports.getUserById = async (req, res) => {
   try {
@@ -192,3 +197,69 @@ exports.bulkInsertUsers = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+//Login
+//authentication and authorization
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    //check user if exist by email
+    const user = await userService.getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    //check password matches
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Password",
+      });
+    }
+    delete user.password;
+    //create jwt
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        roleid: user.role,
+      },
+      process.env.JWT_SECRET || "secret123",
+      { expiresIn: "1h" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Login Successful",
+      token,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+//soft delete user
+exports.softDeleteUser=async(req,res)=>{
+  try {
+    const userId=req.params.id;
+    const result = await userService.softDeleteUser(userId);
+    return res.status(200).json({
+      success: true,
+      message: "User soft deleted successfully"
+    })
+  } catch (err) {
+     return res.status(500).json({
+      success: false,
+      message: err.message
+     })
+    }
+}

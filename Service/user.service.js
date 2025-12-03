@@ -4,7 +4,7 @@ const db = require("../config/db");
 exports.createUser = async (data) => {
   try {
     const result = await db.query(
-      `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode,password) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active') RETURNING *`,
       [
         data.name,
         data.company_id,
@@ -15,6 +15,7 @@ exports.createUser = async (data) => {
         data.address,
         data.city,
         data.pincode || null,
+        data.password,
       ]
     );
 
@@ -26,28 +27,28 @@ exports.createUser = async (data) => {
 
 //ReadUser by pagination
 
-exports.getAllUsers = async (page,limit) => {
+exports.getAllUsers = async (page, limit) => {
   try {
-    page=Number(page);
-    limit=Number(limit);
+    page = Number(page);
+    limit = Number(limit);
 
-    const offset=(page-1)*limit
+    const offset = (page - 1) * limit;
 
-    const totalData= await db.query(`SELECT COUNT(*) FROM users`);
-    const total = Number(totalData.rows[0].count)
+    const totalData = await db.query(`SELECT COUNT(*) FROM users`);
+    const total = Number(totalData.rows[0].count);
 
-    const result=await db.query(
+    const result = await db.query(
       `SELECT * FROM users ORDER BY id DESC LIMIT $1 OFFSET $2 `,
-      [limit,offset]
+      [limit, offset]
     );
 
-    return{
+    return {
       page,
       limit,
       total,
-      totalPages:Math.ceil(total/limit),
-      data:result.rows
-    }
+      totalPages: Math.ceil(total / limit),
+      data: result.rows,
+    };
   } catch (error) {
     throw error;
   }
@@ -113,11 +114,11 @@ exports.deleteUser = async (id) => {
 };
 
 //Bulk user insert
-exports.bulkInsertUsers=async(users)=>{
-if(!users||users.length===0){
-  throw new Error("Users array is empty")
-}
- const columns = [
+exports.bulkInsertUsers = async (users) => {
+  if (!users || users.length === 0) {
+    throw new Error("Users array is empty");
+  }
+  const columns = [
     "name",
     "company_id",
     "email",
@@ -128,10 +129,10 @@ if(!users||users.length===0){
     "city",
     "pincode",
   ];
- const values = [];
+  const values = [];
   const rowPlaceholders = users.map((u, rowIndex) => {
     const startIndex = rowIndex * columns.length; // 0-based
-    
+
     values.push(
       u.name || null,
       u.company_id || null,
@@ -170,5 +171,33 @@ if(!users||users.length===0){
     throw err;
   } finally {
     client.release();
+  }
+};
+
+//login
+exports.getUserByEmail = async (email) => {
+  try {
+    const result = await db.query(
+      `SELECT id, name, email, mobile, role, address, city, pincode, password
+       FROM users WHERE email=$1`,
+      [email]
+    );
+    return result.rows[0];
+  } catch (err) {
+    throw err;
+  }
+};
+
+exports.softDeleteUser=async(id)=>{
+  try {
+    const result =await db.query(
+     `UPDATE users
+     SET status = 'inactive',deleted_at=NOW()
+     WHERE id = $1`,
+     [id]
+    );
+    return result.rowCount;
+  } catch (err) {
+    throw err
   }
 }
