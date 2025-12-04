@@ -4,7 +4,7 @@ const db = require("../config/db");
 exports.createUser = async (data) => {
   try {
     const result = await db.query(
-      `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode,password) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active') RETURNING *`,
+      `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode,password,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [
         data.name,
         data.company_id,
@@ -16,6 +16,7 @@ exports.createUser = async (data) => {
         data.city,
         data.pincode || null,
         data.password,
+        'active',
       ]
     );
 
@@ -34,11 +35,16 @@ exports.getAllUsers = async (page, limit) => {
 
     const offset = (page - 1) * limit;
 
-    const totalData = await db.query(`SELECT COUNT(*) FROM users`);
+    const totalData = await db.query(
+      `SELECT COUNT(*) FROM users WHERE status='active'`
+    );
     const total = Number(totalData.rows[0].count);
 
     const result = await db.query(
-      `SELECT * FROM users ORDER BY id DESC LIMIT $1 OFFSET $2 `,
+      `SELECT * FROM users 
+      WHERE status='active'
+      ORDER BY id DESC
+      LIMIT $1 OFFSET $2 `,
       [limit, offset]
     );
 
@@ -57,7 +63,10 @@ exports.getAllUsers = async (page, limit) => {
 //ReadUser by id
 exports.getUserById = async (id) => {
   try {
-    const result = await db.query(`SELECT * FROM users WHERE id= $1`, [id]);
+    const result = await db.query(
+      `SELECT * FROM users WHERE id= $1 AND status='active'`,
+      [id]
+    );
     return result.rows;
   } catch (error) {
     return error;
@@ -188,16 +197,17 @@ exports.getUserByEmail = async (email) => {
   }
 };
 
-exports.softDeleteUser=async(id)=>{
+exports.softDeleteUser = async (id) => {
   try {
-    const result =await db.query(
-     `UPDATE users
+    const result = await db.query(
+      `UPDATE users
      SET status = 'inactive',deleted_at=NOW()
-     WHERE id = $1`,
-     [id]
+     WHERE id = $1
+     RETURNING *`,
+      [id]
     );
     return result.rowCount;
   } catch (err) {
-    throw err
+    throw err;
   }
-}
+};

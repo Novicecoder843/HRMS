@@ -22,7 +22,7 @@ exports.createUser = async (req, res) => {
       name,
       company_id,
       email,
-      mobile,
+      mobile :newMobile,
       designation,
       role,
       address,
@@ -33,7 +33,7 @@ exports.createUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User created succesfully",
-      data: result || [],
+      data: result ,
     });
     return;
   } catch (error) {
@@ -57,7 +57,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await userService.getAllUsers(page, limit);
     res.status(200).json({
       success: true,
-      message: "Users fetched successfully",
+      message: "Active users fetched successfully",
       ...users,
     });
   } catch (error) {
@@ -73,10 +73,10 @@ exports.getUserById = async (req, res) => {
     const { id } = req.params;
     const result = await userService.getUserById(id);
 
-    if (!result || result.length === 0) {
+    if (!result || result.length === 0 || result[0].status ==='inactive') {
       return res.status(404).json({
         success: false,
-        message: "user not found",
+        message: "User not found or inactive",
         data: [],
       });
     }
@@ -213,6 +213,13 @@ exports.loginUser = async (req, res) => {
       });
     }
 
+    if(user.status==='inactive' && user.deleted_at !== null){
+      return res.status(403).json({
+        success:false,
+        message:"Your account is inacive,Contact admin"
+      })
+    }
+
     //check password matches
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -252,9 +259,16 @@ exports.softDeleteUser=async(req,res)=>{
   try {
     const userId=req.params.id;
     const result = await userService.softDeleteUser(userId);
+
+    if(result===0){
+      return res.status(404).json({
+        success:false,
+        message:'User not found'
+      })
+    }
     return res.status(200).json({
       success: true,
-      message: "User soft deleted successfully"
+      message: "User  deleted successfully"
     })
   } catch (err) {
      return res.status(500).json({

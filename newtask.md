@@ -6,3 +6,7 @@
     - log in api with email and password(check email user exist or not, check the user password with db password ,create jwt token and send it in response)
 4.implment deleted_at and status field as active/inactive field in users table and dont hard delete data 
 5.implement soft delete in delete api
+
+-------------------
+6. implement middelware for validation using zod or joi library
+7. add middelware for - authentication mechanism

@@ -5,6 +5,8 @@ const routes= require("./Routes/index.js")
 
 const app=express();
 
+//middelware - req,res,next()
+// input sanitization/validation
 app.use(express.json());
 
 

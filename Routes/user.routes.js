@@ -3,7 +3,7 @@ const router = express.Router();
 const userController = require("../Controller/user.controller");
 
 //Creat User
-router.post("/adduser", userController.createUser);
+router.post("/adduser",userController.createUser);
 
 //Read All
 router.get('/getall',userController.getAllUsers);
@@ -24,6 +24,6 @@ router.post("/bulk-insert",userController.bulkInsertUsers)
 router.post("/login",userController.loginUser);
 
 //soft delete user
-router.delete("/user/:id",userController.softDeleteUser);
+router.delete("/softdelete/:id",userController.softDeleteUser);
 
 module.exports = router;
