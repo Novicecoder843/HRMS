@@ -1,6 +1,7 @@
 const express=require("express")
 
 const routes= require("./Routes/index.js")
+// const {authenticate}=require ("../middlewares/auth.middlewares")
 
 
 const app=express();

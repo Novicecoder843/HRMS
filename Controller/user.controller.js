@@ -17,12 +17,31 @@ exports.createUser = async (req, res) => {
       password,
     } = req.body;
     let newMobile = "91" + mobile;
+    
+    // Check if email already exists
+    const existingEmail = await userService.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    // Check if mobile already exists
+    const existingMobile = await userService.getUserByMobile(newMobile);
+    if (existingMobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number already exists",
+      });
+    }
+
     const hashPassword = await bcrypt.hash(password, 10);
     const result = await userService.createUser({
       name,
       company_id,
       email,
-      mobile :newMobile,
+      mobile: newMobile,
       designation,
       role,
       address,
@@ -33,7 +52,7 @@ exports.createUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User created succesfully",
-      data: result ,
+      data: result,
     });
     return;
   } catch (error) {
@@ -73,7 +92,7 @@ exports.getUserById = async (req, res) => {
     const { id } = req.params;
     const result = await userService.getUserById(id);
 
-    if (!result || result.length === 0 || result[0].status ==='inactive') {
+    if (!result || result.length === 0 || result[0].status === "inactive") {
       return res.status(404).json({
         success: false,
         message: "User not found or inactive",
@@ -213,11 +232,11 @@ exports.loginUser = async (req, res) => {
       });
     }
 
-    if(user.status==='inactive' && user.deleted_at !== null){
+    if (user.status === "inactive" && user.deleted_at !== null) {
       return res.status(403).json({
-        success:false,
-        message:"Your account is inacive,Contact admin"
-      })
+        success: false,
+        message: "Your account is inacive,Contact admin",
+      });
     }
 
     //check password matches
@@ -255,25 +274,25 @@ exports.loginUser = async (req, res) => {
 };
 
 //soft delete user
-exports.softDeleteUser=async(req,res)=>{
+exports.softDeleteUser = async (req, res) => {
   try {
-    const userId=req.params.id;
+    const userId = req.params.id;
     const result = await userService.softDeleteUser(userId);
 
-    if(result===0){
+    if (result === 0) {
       return res.status(404).json({
-        success:false,
-        message:'User not found'
-      })
+        success: false,
+        message: "User not found",
+      });
     }
     return res.status(200).json({
       success: true,
-      message: "User  deleted successfully"
-    })
+      message: "User  deleted successfully",
+    });
   } catch (err) {
-     return res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message
-     })
-    }
-}
+      message: err.message,
+    });
+  }
+};

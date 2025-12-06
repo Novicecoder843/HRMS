@@ -26,6 +26,20 @@ exports.createUser = async (data) => {
   }
 };
 
+//
+exports.getUserByMobile = async (mobile) => {
+  try {
+    const result = await db.query(
+      `SELECT * FROM users WHERE mobile=$1`,
+      [mobile]
+    );
+    return result.rows[0];
+  } catch (err) {
+    throw err;
+  }
+};
+
+
 //ReadUser by pagination
 
 exports.getAllUsers = async (page, limit) => {
