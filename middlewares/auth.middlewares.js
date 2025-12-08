@@ -1,9 +1,16 @@
 const jwt = require("jsonwebtoken");
 const { success } = require("zod");
 
+const ignorePaths = [ "/adduser", "/login" ];
+
 //Auth middileware
 const authenticate = (req, res, next) => {
   try {
+    if (ignorePaths.includes(req.path)){
+
+         return next()
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({

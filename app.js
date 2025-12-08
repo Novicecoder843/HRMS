@@ -1,23 +1,32 @@
 const express=require("express")
 
 const routes= require("./Routes/index.js")
-// const {authenticate}=require ("../middlewares/auth.middlewares")
+const userRoutes = require("./Routes/user.routes");
+const companyRoutes=require("./Routes/company.routes.js")
+const {authenticate}=require ("./middlewares/auth.middlewares")
 
 
 const app=express();
 
 //middelware - req,res,next()
 // input sanitization/validation
+
 app.use(express.json());
 
 
-app.use("/api/v1",routes)
+// Optional public routes
+// app.use("/api/v1/adduser", routes);
+// app.use("/api/v1/login", routes);
 
 app.get('/getdata',(req,res)=>{
-
-res.send({data:[],success:true,message:"server is running"})
-
+    
+    res.send({data:[],success:true,message:"server is running"})
+    
 })
+
+app.use("/api/v1/users", authenticate, routes);
+
+app.use("/api/v1/companies", companyRoutes);
 
 
 const PORT=process.env.PORT || 4000;
