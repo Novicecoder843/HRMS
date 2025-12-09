@@ -24,9 +24,8 @@ app.get('/getdata',(req,res)=>{
     
 })
 
-app.use("/api/v1/users", authenticate, routes);
+app.use("/api/v1", authenticate, routes);
 
-app.use("/api/v1/companies", companyRoutes);
 
 
 const PORT=process.env.PORT || 4000;

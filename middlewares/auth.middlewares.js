@@ -1,7 +1,9 @@
 const jwt = require("jsonwebtoken");
 const { success } = require("zod");
 
-const ignorePaths = [ "/adduser", "/login" ];
+const ignorePaths = [ "/users/adduser", 
+    "/users/login",
+    "/companies/add", ];
 
 //Auth middileware
 const authenticate = (req, res, next) => {
@@ -19,6 +21,7 @@ const authenticate = (req, res, next) => {
       });
     }
     // implrment expiration - if token expire throw error token expiry
+    
     const token = authHeader.split(" ")[1];
 
     const decode = jwt.verify(token, process.env.JWT_SECRET || "secret123");
