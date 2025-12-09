@@ -7,7 +7,8 @@ const {
   validateLoginUser,
   validateGetUserById,
   validateBulkInsertUsers,
-  validateSoftDeleteUser,
+  validateSoftDeleteUser,validateRequestReset,
+  validateResetPassword,
 } = require("../middlewares/validation.middlewares");
 
 const { authenticate } = require("../middlewares/auth.middlewares");
@@ -40,5 +41,13 @@ router.post("/bulk-insert", validateBulkInsertUsers, userController.bulkInsertUs
 
 //soft delete user
 router.delete("/softdelete/:id", validateSoftDeleteUser, userController.softDeleteUser);
+
+//Request password reset link
+router.post("/request-reset", validateRequestReset, userController.requestPasswordReset);
+
+//Reset Password
+router.post("/reset-password", validateResetPassword, userController.resetPassword);
+
+
 
 module.exports = router;

@@ -2,8 +2,9 @@ const jwt = require("jsonwebtoken");
 const { success } = require("zod");
 
 const ignorePaths = [ "/users/adduser", 
-    "/users/login",
-    "/companies/add", ];
+    "/users/login","/users/bulk-insert",
+    "/companies/add","/users/request-reset",  
+    "/users/reset-password", ];
 
 //Auth middileware
 const authenticate = (req, res, next) => {
@@ -30,10 +31,14 @@ const authenticate = (req, res, next) => {
 
     next();
   } catch (err) {
-    console.log(err)
+    console.error("JWT Error:", err.message);
+    let errorMessage = "Invalid or expired token";
+    if (err.name === 'TokenExpiredError') {
+            errorMessage = "Token expired"; 
+        }
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired token",
+      message: errorMessage
     });
   }
 };

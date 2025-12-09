@@ -1,13 +1,13 @@
 const { z } = require("zod");
 
-//creat user 
+//creat user
 const createUserSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   company_id: z.string().min(1, "Company ID is required"),
   email: z.string().email("Invalid email format"),
   mobile: z.string().length(10, "Mobile number must be 10 digits"),
   designation: z.string().min(2, "Designation required"),
-  role: z.string().min(2, "Role required"),
+ role_id: z.coerce.number().int().positive("Role ID must be a positive integer"),
   address: z.string().optional(),
   city: z.string().optional(),
   pincode: z.string().optional(),
@@ -17,7 +17,7 @@ const createUserSchema = z.object({
 const validateCreateUser = (req, res, next) => {
   try {
     createUserSchema.parse(req.body); // Zod validation
-    next(); 
+    next();
   } catch (err) {
     return res.status(400).json({
       success: false,
@@ -26,32 +26,33 @@ const validateCreateUser = (req, res, next) => {
   }
 };
 
-
 //updateuser
-const updateUserSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  company_id: z.string().min(1, "Company ID is required"),
-  email: z.string().email("Invalid email format"),
-  mobile: z.string().length(10, "Mobile number must be 10 digits"),
-  designation: z.string().min(2, "Designation required"),
-  role: z.string().min(2, "Role required"),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  pincode: z.string().optional(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-}).partial(); 
+const updateUserSchema = z
+  .object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    company_id: z.string().min(1, "Company ID is required"),
+    email: z.string().email("Invalid email format"),
+    mobile: z.string().length(10, "Mobile number must be 10 digits"),
+    designation: z.string().min(2, "Designation required"),
+    role_id: z.coerce.number().int().positive("Role ID must be a positive integer"),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    pincode: z.string().optional(),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  })
+  .partial();
 //validate updateuser
-const validateUpdateUser =(req,res,next)=>{
-try {
+const validateUpdateUser = (req, res, next) => {
+  try {
     updateUserSchema.parse(req.body);
     next();
-} catch (err) {
+  } catch (err) {
     return res.status(400).json({
-        success: false,
+      success: false,
       message: err.message || "Validation failed",
-    })
-}
-}
+    });
+  }
+};
 
 // Login validation
 const loginUserSchema = z.object({
@@ -71,7 +72,6 @@ const validateLoginUser = (req, res, next) => {
   }
 };
 
-
 // Get user by ID validation
 const getUserByIdSchema = z.object({
   id: z.string().min(1, "User ID is required"),
@@ -89,7 +89,6 @@ const validateGetUserById = (req, res, next) => {
   }
 };
 
-
 // Bulk insert users validation
 const bulkInsertSchema = z.object({
   users: z.array(
@@ -99,7 +98,7 @@ const bulkInsertSchema = z.object({
       email: z.string().email("Invalid email format"),
       mobile: z.string().length(10, "Mobile number must be 10 digits"),
       designation: z.string().min(2, "Designation required"),
-      role: z.string().min(2, "Role required"),
+      role_id: z.number().int().positive(),
       address: z.string().optional(),
       city: z.string().optional(),
       pincode: z.string().optional(),
@@ -120,7 +119,6 @@ const validateBulkInsertUsers = (req, res, next) => {
   }
 };
 
-
 // Soft delete validation
 const softDeleteSchema = z.object({
   id: z.string().min(1, "User ID is required"),
@@ -138,7 +136,41 @@ const validateSoftDeleteUser = (req, res, next) => {
   }
 };
 
+//Request reset password
+const requestResetSchema = z.object({
+  email: z.string().email("Invalid email format"),
+});
 
+// Reset Password Validation
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  new_password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// New Validation Functions
+const validateRequestReset = (req, res, next) => {
+  try {
+    requestResetSchema.parse(req.body);
+    next();
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.errors ? err.errors[0].message : err.message,
+    });
+  }
+};
+
+const validateResetPassword = (req, res, next) => {
+  try {
+    resetPasswordSchema.parse(req.body);
+    next();
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.errors ? err.errors[0].message : err.message,
+    });
+  }
+};
 
 module.exports = {
   validateCreateUser,
@@ -147,5 +179,6 @@ module.exports = {
   validateGetUserById,
   validateBulkInsertUsers,
   validateSoftDeleteUser,
+  validateRequestReset,
+  validateResetPassword,
 };
-

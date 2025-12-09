@@ -1,6 +1,9 @@
 const userService = require("../Service/user.service");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { success } = require("zod");
+
 //Creat User
 exports.createUser = async (req, res) => {
   try {
@@ -10,14 +13,14 @@ exports.createUser = async (req, res) => {
       email,
       mobile,
       designation,
-      role,
+      role_id,
       address,
       city,
       pincode,
       password,
     } = req.body;
     let newMobile = "91" + mobile;
-    
+
     // Check if email already exists
     const existingEmail = await userService.getUserByEmail(email);
     if (existingEmail) {
@@ -43,7 +46,7 @@ exports.createUser = async (req, res) => {
       email,
       mobile: newMobile,
       designation,
-      role,
+      role_id,
       address,
       city,
       pincode,
@@ -71,9 +74,11 @@ exports.getAllUsers = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
 
+    let companyId=req.query.company_id||null;
+
     let offset = (page - 1) * limit;
 
-    const users = await userService.getAllUsers(page, limit);
+    const users = await userService.getAllUsers(page, limit,companyId);
     res.status(200).json({
       success: true,
       message: "Active users fetched successfully",
@@ -124,7 +129,7 @@ exports.updateUser = async (req, res) => {
       email,
       mobile,
       designation,
-      role,
+      role_id,
       address,
       city,
       pincode,
@@ -136,7 +141,7 @@ exports.updateUser = async (req, res) => {
       email,
       mobile,
       designation,
-      role,
+      role_id,
       address,
       city,
       pincode,
@@ -253,7 +258,7 @@ exports.loginUser = async (req, res) => {
       {
         id: user.id,
         email: user.email,
-        roleid: user.role,
+        role_id: user.role_id,
       },
       process.env.JWT_SECRET || "secret123",
       { expiresIn: "1h" }
@@ -294,5 +299,61 @@ exports.softDeleteUser = async (req, res) => {
       success: false,
       message: err.message,
     });
+  }
+};
+
+//Reset password request
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await userService.getUserByEmail(email);
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "If the email is registered, a password reset link has been sent.",
+      });
+    }
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiry = new Date(Date.now() + 3600000);
+    await userService.saveResetToken(email, resetToken, tokenExpiry);
+    return res.status(200).json({
+      success: true,
+      message: "Password reset token generated and sent (Check email).",
+      dev_token: resetToken,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+//Reset password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+    const user = await userService.findUserByResetToken(token);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token.",
+      });
+    }
+    const newHashPassword = await bcrypt.hash(new_password, 10);
+
+    await userService.updatePasswordAndClearToken(user.id, newHashPassword);
+    return res.status(200).json({
+      success: true,
+      message:
+        "Password reset successfully. You can now log in with your new password.",
+    });
+   
+  } catch (err) {
+     return res.status(500).json({
+      success:false,
+      message:err.message
+    })
   }
 };
