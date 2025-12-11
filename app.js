@@ -1,25 +1,23 @@
-const  express = require("express");
-// import dotenv from "dotenv";
-import routes from "./routes/index.js";
-// import sequelize from "./config/db.config.js";
-// import errorMiddleware from "./middleware/error.middleware.js";
+const express = require("express");
 
-// dotenv.config();
+const routes = require("./Routes/index.js")
 
 const app = express();
-//middelware -- 
+
 app.use(express.json());
-// http://localhost:4000/api/v1/user/adduser
-// http://localhost:4000/api/v1/user/deleteuser
-// http://localhost:4000/api/v1/user/updateuser
 
-// http://localhost:4000/api/v1/attandnce/getattend
-// http://localhost:4000/api/v1/attandnce/insertattendcne
+app.use("/api/v1", routes)
 
-app.use("/api/v1", routes);
-app.use(errorMiddleware);
+app.get('/', (req, res) => {
 
-sequelize.sync({ alter: false }).then(() => console.log("Database connected ✅"));
+     res.send({ data: [], success: true, message: "server is running" })
+});
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+
+
+app.listen(3000, () => {
+     console.log(`server listening at http://localhost:3000`);
+
+});
+
