@@ -11,3 +11,6 @@
 6. implement middelware for validation using zod or joi library
 7. add middelware for - authentication mechanism
 8.global authentication mechanisim
+9.store employee code -- 
+10 - store depatrment id in users table
+fetch department name using join on getall api

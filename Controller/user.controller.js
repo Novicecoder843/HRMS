@@ -3,6 +3,17 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { success } = require("zod");
+const companyService = require("../Service/company.service");
+
+// const generateEmpCode = async (companyName, companyId) => {
+//   const prefix = companyName.substring(0, 3).toUpperCase();
+//   const newSequenceNumber = await userService.getNextEmpSequence(
+//     prefix,
+//     companyId
+//   );
+//   const sequencePart = String(newSequenceNumber).padStart(4, "0");
+//   return `${prefix}${sequencePart}`;
+// };
 
 //Creat User
 exports.createUser = async (req, res) => {
@@ -18,6 +29,7 @@ exports.createUser = async (req, res) => {
       city,
       pincode,
       password,
+      dept_id,
     } = req.body;
     let newMobile = "91" + mobile;
 
@@ -39,6 +51,23 @@ exports.createUser = async (req, res) => {
       });
     }
 
+    const company = await companyService.getCompanyById(company_id);
+
+    if (!company || !company.name) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid company ID provided.",
+      });
+    }
+    const prefix = company.name.substring(0, 3).toUpperCase();
+    const newSequenceNumber = await userService.getNextEmpSequence(
+      prefix,
+      company_id
+    );
+    const sequencePart = String(newSequenceNumber).padStart(4, "0");
+    const empCode = `${prefix}${sequencePart}`;
+
+    // const empCode = await generateEmpCode(company.name, company_id);
     const hashPassword = await bcrypt.hash(password, 10);
     const result = await userService.createUser({
       name,
@@ -51,6 +80,7 @@ exports.createUser = async (req, res) => {
       city,
       pincode,
       password: hashPassword,
+      emp_code: empCode,dept_id,
     });
     res.status(200).json({
       success: true,
@@ -74,11 +104,11 @@ exports.getAllUsers = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
 
-    let companyId=req.query.company_id||null;
+    let companyId = req.query.company_id || null;
 
     let offset = (page - 1) * limit;
 
-    const users = await userService.getAllUsers(page, limit,companyId);
+    const users = await userService.getAllUsers(page, limit, companyId);
     res.status(200).json({
       success: true,
       message: "Active users fetched successfully",
@@ -132,7 +162,7 @@ exports.updateUser = async (req, res) => {
       role_id,
       address,
       city,
-      pincode,
+      pincode,dept_id
     } = req.body;
 
     const result = await userService.updateUser(id, {
@@ -144,7 +174,7 @@ exports.updateUser = async (req, res) => {
       role_id,
       address,
       city,
-      pincode,
+      pincode,dept_id
     });
 
     if (!result || result.length === 0) {
@@ -209,12 +239,67 @@ exports.bulkInsertUsers = async (req, res) => {
         message: "users array is required",
       });
     }
-    const result = await userService.bulkInsertUsers(users);
+
+    const processedUsers = [];
+    const nextSequenceMap = {};
+    const reversedUsers = [...users].reverse();
+
+    for (const u of reversedUsers) {
+      if (!u.company_id || !u.password) {
+        throw new Error(
+          `User ${u.email || u.name} is missing company_id or password.`
+        );
+      }
+
+      let newMobile = "91" + u.mobile;
+
+      const company = await companyService.getCompanyById(u.company_id);
+      if (!company || !company.name) {
+        throw new Error(
+          `Invalid company ID ${u.company_id} for user ${u.email}.`
+        );
+      }
+
+      const prefix = company.name.substring(0, 3).toUpperCase();
+      const companyKey = u.company_id;
+
+      if (!nextSequenceMap[companyKey]) {
+        const initialSequence = await userService.getNextEmpSequence(
+          prefix,
+          companyKey
+        );
+        nextSequenceMap[companyKey] = initialSequence;
+      }
+
+      const currentSequence = nextSequenceMap[companyKey];
+
+      const sequencePart = String(currentSequence).padStart(4, "0");
+      const empCode = `${prefix}${sequencePart}`;
+
+      nextSequenceMap[companyKey] = currentSequence + 1;
+
+      // const empCode = await generateEmpCode(company.name, u.company_id);
+
+      const hashPassword = await bcrypt.hash(u.password, 10);
+
+      processedUsers.push({
+        ...u,
+        mobile: newMobile,
+        password: hashPassword,
+        emp_code: empCode,
+        status: "active",
+        dept_id:u.dept_id||null
+      });
+    }
+    const usersToInsert = processedUsers.reverse();
+    const result = await userService.bulkInsertUsers(usersToInsert);
+    
 
     return res.status(201).json({
       success: true,
       message: `${result.rowCount} users inserted successfully`,
       rowCount: result.rowCount,
+      data:result.rows,
     });
   } catch (err) {
     console.error("bulkInsertUsers Error:", err);
@@ -349,11 +434,10 @@ exports.resetPassword = async (req, res) => {
       message:
         "Password reset successfully. You can now log in with your new password.",
     });
-   
   } catch (err) {
-     return res.status(500).json({
-      success:false,
-      message:err.message
-    })
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

@@ -2,7 +2,9 @@ const db = require("../config/db");
 
 // 1. Create Department
 exports.createDepartment = async (data) => {
-    const { company_id, name } = data;
+
+    try {
+        const { company_id, name } = data;
     const query = `
         INSERT INTO departments (company_id, name)
         VALUES ($1, $2)
@@ -10,13 +12,17 @@ exports.createDepartment = async (data) => {
     `;
     const result = await db.query(query, [company_id, name]);
     return result.rows[0];
+    } catch (err) {
+        throw new Error(`Error creating department: ${err.message}`);
+    }
+    
 };
 
 // 2. Get All Departments
 exports.getAllDepartments = async (page, limit) => {
     const offset = (page - 1) * limit;
 
-    const countQuery = `SELECT COUNT(*) FROM departments`;
+    const countQuery = `SELECT COUNT(*) FROM departments WHERE status='active'`;
     const totalResult = await db.query(countQuery);
     const totalRecords = parseInt(totalResult.rows[0].count);
     const totalPages = Math.ceil(totalRecords / limit);
@@ -24,6 +30,7 @@ exports.getAllDepartments = async (page, limit) => {
     const departmentsQuery = `
         SELECT id, company_id, name
         FROM departments 
+        WHERE status='active'
         ORDER BY id ASC
         LIMIT $1 OFFSET $2`;
 
@@ -60,12 +67,16 @@ exports.updateDepartment = async (id, data) => {
     return result.rows[0];
 };
 
-// 5. Delete Department (Hard Delete)
+// 5. Delete Department 
 exports.deleteDepartment = async (id) => {
+    
     const query = `
-        DELETE FROM departments
-        WHERE id = $1
+        UPDATE departments
+            SET status = 'inactive', deleted_at = NOW() 
+            WHERE id = $1 AND status = 'active'
+            RETURNING id;
     `;
     const result = await db.query(query, [id]);
+   
     return result.rowCount;
 };

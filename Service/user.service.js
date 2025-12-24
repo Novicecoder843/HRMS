@@ -1,23 +1,51 @@
 const { number } = require("zod");
 const db = require("../config/db");
 
+// user.service.js (The correct and robust implementation)
+
+exports.getNextEmpSequence = async (prefix, companyId) => {
+  try {
+    const query = `
+    SELECT 
+        COALESCE(
+            MAX(
+                -- Robustly extracts only digits from the EmpCode for maximum safety
+                CAST(REGEXP_REPLACE(emp_code, '^[^0-9]*(\\d*)$', '\\1') AS INTEGER)
+            ), 
+            0
+        ) + 1 AS next_sequence
+    FROM users
+    WHERE emp_code ILIKE $1 || '%' 
+    AND company_id = $2;
+    `;
+    const result = await db.query(query, [prefix, companyId]);
+    return result.rows[0].next_sequence;
+  } catch (err) {
+    throw new Error(`Error fetching next EmpCode sequence: ${err.message}`);
+  }
+};
+
 //Create User
 exports.createUser = async (data) => {
   try {
+    const { emp_code, ...userData } = data;
+
     const result = await db.query(
-      `INSERT INTO users (name,company_id,email,mobile,designation,role_id,address,city,pincode,password,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO users (name,company_id,email,mobile,designation,role_id,address,city,pincode,password,status,emp_code,dept_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
-        data.name,
-        data.company_id,
-        data.email,
-        data.mobile,
-        data.designation,
-        data.role_id,
-        data.address,
-        data.city,
-        data.pincode || null,
-        data.password,
+        userData.name,
+        userData.company_id,
+        userData.email,
+        userData.mobile,
+        userData.designation,
+        userData.role_id,
+        userData.address,
+        userData.city,
+        userData.pincode || null,
+        userData.password,
         "active",
+        emp_code,
+        dept_id || null,
       ]
     );
 
@@ -41,7 +69,7 @@ exports.getUserByMobile = async (mobile) => {
 
 //ReadUser by pagination
 
-exports.getAllUsers = async (page, limit,companyId) => {
+exports.getAllUsers = async (page, limit, companyId) => {
   try {
     page = Number(page);
     limit = Number(limit);
@@ -60,7 +88,10 @@ exports.getAllUsers = async (page, limit,companyId) => {
       paramIndex++;
     }
 
-    const countQuery =  `SELECT COUNT(*) FROM users u WHERE ${whereConditions.replace("u.company_id=$3", "u.company_id=$1")}`;
+    const countQuery = `SELECT COUNT(*) FROM users u WHERE ${whereConditions.replace(
+      "u.company_id=$3",
+      "u.company_id=$1"
+    )}`;
     const totalData = await db.query(countQuery, countQueryParams);
     const total = Number(totalData.rows[0].count);
 
@@ -76,10 +107,13 @@ u.role_id,
 r.role_name AS user_role_name,
 u.company_id,
  c.name AS user_company_name, 
+ u.dept_id,
+ d.name As department_name,
  u.created_at
 FROM users u
 LEFT JOIN roles r ON u.role_id = r.id 
 LEFT JOIN companies c ON u.company_id = c.company_id 
+LEFT JOIN departments d ON u.dept_id = d.id
 WHERE ${whereConditions}
 ORDER BY u.id DESC
 LIMIT $1 OFFSET $2`;
@@ -124,6 +158,7 @@ exports.updateUser = async (id, data) => {
         address=$7,
         city=$8,
         pincode=$9,
+        dept_id=$10,
         updated_at=NOW()
       WHERE id=$10
       RETURNING *`,
@@ -137,6 +172,7 @@ exports.updateUser = async (id, data) => {
         data.address,
         data.city,
         data.pincode,
+        data.dept_id || null,
         id,
       ]
     );
@@ -174,6 +210,10 @@ exports.bulkInsertUsers = async (users) => {
     "address",
     "city",
     "pincode",
+    "password",
+    "emp_code",
+    "status",
+    "dept_id",
   ];
   const values = [];
   const rowPlaceholders = users.map((u, rowIndex) => {
@@ -188,7 +228,11 @@ exports.bulkInsertUsers = async (users) => {
       u.role_id || null,
       u.address || null,
       u.city || null,
-      u.pincode || null
+      u.pincode || null,
+      u.password,
+      u.emp_code,
+      u.status || "active",
+      u.dept_id || null
     );
 
     const placeholders = [];

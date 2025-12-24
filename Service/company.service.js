@@ -59,6 +59,8 @@ exports.getCompanyByIDService = async (id) => {
   }
 };
 
+exports.getCompanyById = exports.getCompanyByIDService;
+
 //update company
 exports.updateCompanyService=async(id,data)=>{
 
