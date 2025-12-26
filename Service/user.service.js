@@ -1,5 +1,6 @@
 const { number } = require("zod");
 const db = require("../config/db");
+const bcrypt = require("bcrypt");
 
 // user.service.js (The correct and robust implementation)
 
@@ -28,7 +29,7 @@ exports.getNextEmpSequence = async (prefix, companyId) => {
 //Create User
 exports.createUser = async (data) => {
   try {
-    const { emp_code, ...userData } = data;
+    const { emp_code, dept_id, ...userData } = data;
 
     const result = await db.query(
       `INSERT INTO users (name,company_id,email,mobile,designation,role_id,address,city,pincode,password,status,emp_code,dept_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
@@ -67,8 +68,105 @@ exports.getUserByMobile = async (mobile) => {
   }
 };
 
-//ReadUser by pagination
+//upload user data by excel
+exports.processExcelRow = async (row) => {
+  let companyRes = await db.query(
+    "SELECT company_id FROM companies WHERE name=$1",
+    [row.company_name]
+  );
+  let company_id;
+  if (companyRes.rows.length > 0) {
+    company_id = companyRes.rows[0].company_id;
+  } else {
+    let newComp = await db.query(
+      `INSERT INTO companies (name, email, mobile, address, city, pincode) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING company_id`,
+      [
+        row.company_name,
+        row.company_email,
+        row.company_mobile,
+        row.company_address,
+        row.company_city,
+        row.company_pincode,
+      ]
+    );
+    company_id = newComp.rows[0].company_id;
+  }
 
+  let dept_id = null;
+  if (row.department_name) {
+    let deptRes = await db.query(
+      "SELECT id from departments WHERE name=$1 AND company_id=$2",
+      [row.department_name, company_id]
+    );
+    if (deptRes.rows.length > 0) {
+      dept_id = deptRes.rows[0].id;
+    } else {
+      let newDept = await db.query(
+        "INSERT INTO departments (name, company_id) VALUES ($1, $2) RETURNING id",
+        [row.department_name, company_id]
+      );
+      dept_id = newDept.rows[0].id;
+    }
+  }
+
+  let roleRes = await db.query("SELECT id FROM roles WHERE role_name = $1", [
+    row.role_name || "Employee",
+  ]);
+  const role_id = roleRes.rows.length > 0 ? roleRes.rows[0].id : 2;
+
+
+const prefix = row.company_name.substring(0, 3).toUpperCase();
+
+const lastUserRes = await db.query(
+  `SELECT emp_code FROM users 
+   WHERE company_id = $1 AND emp_code LIKE $2 
+   ORDER BY length(emp_code) DESC, emp_code DESC LIMIT 1`,
+  [company_id, `${prefix}%`]
+);
+
+let seq = 1; 
+if (lastUserRes.rows.length > 0) {
+  const lastCode = lastUserRes.rows[0].emp_code; 
+  
+  
+  const lastNumber = parseInt(lastCode.replace(prefix, "")); 
+  
+  if (!isNaN(lastNumber)) {
+    seq = lastNumber + 1; 
+  }
+}
+
+const emp_code = `${prefix}${String(seq).padStart(4, "0")}`;
+
+
+  const hashPassword = await bcrypt.hash("Pass@123", 10);
+  const mobile = "91" + row.mobile;
+
+  const newUser = await db.query(
+    `INSERT INTO users (name, company_id, email, mobile, designation, role_id, address, city, pincode, password, status, emp_code, dept_id) 
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+    [
+      row.user_name, 
+      company_id, 
+      row.email, 
+      row.mobile, 
+      row.designation, 
+      role_id, 
+      row.address||'', 
+      row.city||'', 
+      row.pincode || null, 
+      hashPassword, 
+      "active", 
+      emp_code, 
+      dept_id, 
+    ]
+  );
+
+  return newUser.rows[0];
+};
+
+//ReadUser by pagination
 exports.getAllUsers = async (page, limit, companyId) => {
   try {
     page = Number(page);
@@ -85,38 +183,31 @@ exports.getAllUsers = async (page, limit, companyId) => {
       whereConditions += " AND u.company_id=$" + paramIndex;
       mainQueryParams.push(companyId);
       countQueryParams.push(companyId);
-      paramIndex++;
     }
 
     const countQuery = `SELECT COUNT(*) FROM users u WHERE ${whereConditions.replace(
-      "u.company_id=$3",
-      "u.company_id=$1"
+      "$3",
+      "$1"
     )}`;
     const totalData = await db.query(countQuery, countQueryParams);
     const total = Number(totalData.rows[0].count);
 
     const mainQuery = `SELECT
-    u.id,
-    u.name AS user_name, 
- u.email, 
- u.mobile, 
- u.designation, 
- u.address, 
-u.city AS user_city,
-u.role_id,
-r.role_name AS user_role_name,
-u.company_id,
- c.name AS user_company_name, 
- u.dept_id,
- d.name As department_name,
- u.created_at
-FROM users u
-LEFT JOIN roles r ON u.role_id = r.id 
-LEFT JOIN companies c ON u.company_id = c.company_id 
-LEFT JOIN departments d ON u.dept_id = d.id
-WHERE ${whereConditions}
-ORDER BY u.id DESC
-LIMIT $1 OFFSET $2`;
+        u.id,
+        u.emp_code,
+        u.name AS user_name, 
+        u.email, 
+        u.role_id,
+        c.name AS company_name, 
+        d.name AS department_name, 
+        r.role_name AS role_name
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id 
+      LEFT JOIN companies c ON u.company_id = c.company_id 
+      LEFT JOIN departments d ON u.dept_id = d.id
+      WHERE ${whereConditions}
+      ORDER BY u.id DESC
+      LIMIT $1 OFFSET $2`;
     const result = await db.query(mainQuery, mainQueryParams);
 
     return {
@@ -134,11 +225,26 @@ LIMIT $1 OFFSET $2`;
 //ReadUser by id
 exports.getUserById = async (id) => {
   try {
-    const result = await db.query(
-      `SELECT * FROM users WHERE id= $1 AND status='active'`,
-      [id]
-    );
-    return result.rows;
+    const query = `
+      SELECT
+        u.id,
+        u.emp_code,
+        u.name AS user_name, 
+        u.email, 
+        c.name AS company_name, 
+        d.name AS department_name, 
+        u.role_id,
+        r.role_name AS role_name
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id 
+      LEFT JOIN companies c ON u.company_id = c.company_id 
+      LEFT JOIN departments d ON u.dept_id = d.id
+      WHERE u.id = $1 AND u.status = 'active'
+    `;
+
+    const result = await db.query(query, [id]);
+
+    return result.rows[0];
   } catch (error) {
     return error;
   }

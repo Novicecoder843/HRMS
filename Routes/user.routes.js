@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const multer=require('multer')
+const upload=multer({dest:'upload/'})
 const userController = require("../Controller/user.controller");
 const {
   validateCreateUser,
@@ -15,6 +17,10 @@ const { authenticate } = require("../middlewares/auth.middlewares");
 
 // Create User with validation
 router.post("/adduser", validateCreateUser, userController.createUser);
+
+//user upload by excel
+router.post('/upload-users',upload.single('file'),userController.uploadUsers);
+
 
 //Login
 router.post("/login", validateLoginUser, userController.loginUser);

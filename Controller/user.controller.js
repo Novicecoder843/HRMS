@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { success } = require("zod");
 const companyService = require("../Service/company.service");
+const xlsx=require('xlsx')
+const fs=require('fs')
 
 // const generateEmpCode = async (companyName, companyId) => {
 //   const prefix = companyName.substring(0, 3).toUpperCase();
@@ -98,6 +100,69 @@ exports.createUser = async (req, res) => {
   }
 };
 
+//upload user by excel
+exports.uploadUsers=async(req,res)=>{
+  try {
+    if(!req.file){
+      return res.status(400).json({
+        success:false,
+        message:"Please upload an excel file"
+      })
+    }
+
+    const workbook=xlsx.readFile(req.file.path);
+    const sheetName=workbook.SheetNames[0];
+    const excelData =xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if(excelData.length===0){
+      return res.status(400).json({
+        success: false,
+        message:"Excel sheet is empty"
+      })
+    }
+
+    const processData =[];
+    const errors=[];
+
+    
+
+    for(const [index,row] of excelData.entries()){
+      try {
+        if(!row.email || !row.user_name || !row.company_name){
+         throw new Error("Missing required fields (email, name, or company)")
+        }
+
+        const result=await userService.processExcelRow(row);
+        processData.push(result);
+      } catch (err) {
+        errors.push({
+          rowNumber:index+2,
+          name:row.user_name,
+          error:err.message
+        })
+      }
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    res.status(200).json({
+      success:true,
+      message:"Excel upload process completed",
+      total:excelData.length,
+      success_count:processData.length,
+      failure_count:errors.length,
+      errors:errors
+    })
+  } catch (err) {
+    if(req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({
+      success:false,
+      message:err.message
+    })
+
+  }
+}
+
 //Read All by pagination
 exports.getAllUsers = async (req, res) => {
   try {
@@ -125,20 +190,20 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await userService.getUserById(id);
+    const user = await userService.getUserById(id);
 
-    if (!result || result.length === 0 || result[0].status === "inactive") {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found or inactive",
-        data: [],
+        data: null, // Yahan data null ya {} rakhein
       });
     }
 
     res.status(200).json({
       success: true,
       message: "User Fetched Successfully",
-      data: result[0],
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
