@@ -4,8 +4,9 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { success } = require("zod");
 const companyService = require("../Service/company.service");
-const xlsx=require('xlsx')
-const fs=require('fs')
+const xlsx = require("xlsx");
+const fs = require("fs");
+const ExcelJs = require("exceljs");
 
 // const generateEmpCode = async (companyName, companyId) => {
 //   const prefix = companyName.substring(0, 3).toUpperCase();
@@ -82,7 +83,8 @@ exports.createUser = async (req, res) => {
       city,
       pincode,
       password: hashPassword,
-      emp_code: empCode,dept_id,
+      emp_code: empCode,
+      dept_id,
     });
     res.status(200).json({
       success: true,
@@ -101,67 +103,112 @@ exports.createUser = async (req, res) => {
 };
 
 //upload user by excel
-exports.uploadUsers=async(req,res)=>{
+exports.uploadUsers = async (req, res) => {
   try {
-    if(!req.file){
-      return res.status(400).json({
-        success:false,
-        message:"Please upload an excel file"
-      })
-    }
-
-    const workbook=xlsx.readFile(req.file.path);
-    const sheetName=workbook.SheetNames[0];
-    const excelData =xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    if(excelData.length===0){
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message:"Excel sheet is empty"
-      })
+        message: "Please upload an excel file",
+      });
     }
 
-    const processData =[];
-    const errors=[];
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const excelData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    
+    if (excelData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Excel sheet is empty",
+      });
+    }
 
-    for(const [index,row] of excelData.entries()){
+    const processData = [];
+    const errors = [];
+
+    for (const [index, row] of excelData.entries()) {
       try {
-        if(!row.email || !row.user_name || !row.company_name){
-         throw new Error("Missing required fields (email, name, or company)")
+        if (!row.email || !row.user_name || !row.company_name) {
+          throw new Error("Missing required fields (email, name, or company)");
         }
 
-        const result=await userService.processExcelRow(row);
+        const result = await userService.processExcelRow(row);
         processData.push(result);
       } catch (err) {
         errors.push({
-          rowNumber:index+2,
-          name:row.user_name,
-          error:err.message
-        })
+          rowNumber: index + 2,
+          name: row.user_name,
+          error: err.message,
+        });
       }
     }
 
     fs.unlinkSync(req.file.path);
 
     res.status(200).json({
-      success:true,
-      message:"Excel upload process completed",
-      total:excelData.length,
-      success_count:processData.length,
-      failure_count:errors.length,
-      errors:errors
-    })
+      success: true,
+      message: "Excel upload process completed",
+      total: excelData.length,
+      success_count: processData.length,
+      failure_count: errors.length,
+      errors: errors,
+    });
   } catch (err) {
-    if(req.file) fs.unlinkSync(req.file.path);
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({
-      success:false,
-      message:err.message
-    })
-
+      success: false,
+      message: err.message,
+    });
   }
-}
+};
+
+//download user data
+exports.downloadUsersDetailedExcel = async (req, res) => {
+  try {
+    const users = await userService.getAllUsersWithDetails();
+
+    const workbook = new ExcelJs.Workbook();
+    const worksheet = workbook.addWorksheet("Users Detail List");
+
+    worksheet.columns = [
+      { header: "Employee Name", key: "user_name", width: 25 },
+      { header: "Email ID", key: "email", width: 30 },
+      { header: "Mobile No.", key: "mobile", width: 15 },
+      { header: "Designation", key: "designation", width: 20 },
+      { header: "Company Name", key: "company_name", width: 25 },
+      { header: "Department", key: "department_name", width: 20 },
+      { header: "Role", key: "role_name", width: 15 },
+    ];
+
+    users.forEach((user) => {
+      worksheet.addRow({
+        user_name: user.user_name,
+        email: user.email,
+        mobile: user.mobile,
+        designation: user.designation,
+        company_name: user.company_name,
+        department_name: user.department_name,
+        role_name: user.role_name,
+      });
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=Users_Detailed_Report.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.status(200).end();
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 //Read All by pagination
 exports.getAllUsers = async (req, res) => {
@@ -227,7 +274,8 @@ exports.updateUser = async (req, res) => {
       role_id,
       address,
       city,
-      pincode,dept_id
+      pincode,
+      dept_id,
     } = req.body;
 
     const result = await userService.updateUser(id, {
@@ -239,7 +287,8 @@ exports.updateUser = async (req, res) => {
       role_id,
       address,
       city,
-      pincode,dept_id
+      pincode,
+      dept_id,
     });
 
     if (!result || result.length === 0) {
@@ -353,18 +402,17 @@ exports.bulkInsertUsers = async (req, res) => {
         password: hashPassword,
         emp_code: empCode,
         status: "active",
-        dept_id:u.dept_id||null
+        dept_id: u.dept_id || null,
       });
     }
     const usersToInsert = processedUsers.reverse();
     const result = await userService.bulkInsertUsers(usersToInsert);
-    
 
     return res.status(201).json({
       success: true,
       message: `${result.rowCount} users inserted successfully`,
       rowCount: result.rowCount,
-      data:result.rows,
+      data: result.rows,
     });
   } catch (err) {
     console.error("bulkInsertUsers Error:", err);

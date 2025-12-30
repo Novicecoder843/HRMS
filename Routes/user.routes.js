@@ -21,6 +21,9 @@ router.post("/adduser", validateCreateUser, userController.createUser);
 //user upload by excel
 router.post('/upload-users',upload.single('file'),userController.uploadUsers);
 
+// user download
+router.get("/download-detailed", userController.downloadUsersDetailedExcel);
+
 
 //Login
 router.post("/login", validateLoginUser, userController.loginUser);

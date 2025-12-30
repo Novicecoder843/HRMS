@@ -115,30 +115,27 @@ exports.processExcelRow = async (row) => {
   ]);
   const role_id = roleRes.rows.length > 0 ? roleRes.rows[0].id : 2;
 
+  const prefix = row.company_name.substring(0, 3).toUpperCase();
 
-const prefix = row.company_name.substring(0, 3).toUpperCase();
-
-const lastUserRes = await db.query(
-  `SELECT emp_code FROM users 
+  const lastUserRes = await db.query(
+    `SELECT emp_code FROM users 
    WHERE company_id = $1 AND emp_code LIKE $2 
    ORDER BY length(emp_code) DESC, emp_code DESC LIMIT 1`,
-  [company_id, `${prefix}%`]
-);
+    [company_id, `${prefix}%`]
+  );
 
-let seq = 1; 
-if (lastUserRes.rows.length > 0) {
-  const lastCode = lastUserRes.rows[0].emp_code; 
-  
-  
-  const lastNumber = parseInt(lastCode.replace(prefix, "")); 
-  
-  if (!isNaN(lastNumber)) {
-    seq = lastNumber + 1; 
+  let seq = 1;
+  if (lastUserRes.rows.length > 0) {
+    const lastCode = lastUserRes.rows[0].emp_code;
+
+    const lastNumber = parseInt(lastCode.replace(prefix, ""));
+
+    if (!isNaN(lastNumber)) {
+      seq = lastNumber + 1;
+    }
   }
-}
 
-const emp_code = `${prefix}${String(seq).padStart(4, "0")}`;
-
+  const emp_code = `${prefix}${String(seq).padStart(4, "0")}`;
 
   const hashPassword = await bcrypt.hash("Pass@123", 10);
   const mobile = "91" + row.mobile;
@@ -147,23 +144,50 @@ const emp_code = `${prefix}${String(seq).padStart(4, "0")}`;
     `INSERT INTO users (name, company_id, email, mobile, designation, role_id, address, city, pincode, password, status, emp_code, dept_id) 
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
     [
-      row.user_name, 
-      company_id, 
-      row.email, 
-      row.mobile, 
-      row.designation, 
-      role_id, 
-      row.address||'', 
-      row.city||'', 
-      row.pincode || null, 
-      hashPassword, 
-      "active", 
-      emp_code, 
-      dept_id, 
+      row.user_name,
+      company_id,
+      row.email,
+      row.mobile,
+      row.designation,
+      role_id,
+      row.address || "",
+      row.city || "",
+      row.pincode || null,
+      hashPassword,
+      "active",
+      emp_code,
+      dept_id,
     ]
   );
 
   return newUser.rows[0];
+};
+
+//Download user data
+exports.getAllUsersWithDetails = async () => {
+  try {
+    const query = `SELECT
+    u.name as user_name,
+    u.email,
+    u.mobile,
+    u.designation,
+    u.emp_code,
+    c.name as company_name,
+    d.name as department_name,
+                r.role_name
+            FROM users u
+            LEFT JOIN companies c ON u.company_id = c.company_id
+            LEFT JOIN departments d ON u.dept_id = d.id
+            LEFT JOIN roles r ON u.role_id = r.id
+            WHERE u.status = 'active'
+            ORDER BY u.id DESC;
+    `;
+    const result= await db.query(query);
+    return result.rows;
+  } catch (err) {
+    console.error(err)
+    throw new Error("Error fetching detailed users: " + err.message)
+  }
 };
 
 //ReadUser by pagination
