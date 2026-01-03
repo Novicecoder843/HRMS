@@ -1,28 +1,36 @@
-const express = require('express');
-const router = express.Router();
-const userController = require("../Controller/user.controller");
 
-//Creat User
-router.post("/adduser", validateUser, userController.createUser);
+const express = require("express");
+const router = express.Router();
+
+const userController = require("../Controller/user.controller");
+const {
+     ValidateCreateUser,
+     ValidateUpdateUser,
+} = require("../middlewares/user_middleware");
+
+// CREATE USER
+router.post("/adduser", ValidateCreateUser, userController.createUser);
+
+// LOGIN
 router.post("/login", userController.loginUser);
+
+// CHANGE PASSWORD
 router.post("/change-password", userController.changePassword);
 
-//Read All
-// router.get('/all', userController.getAllUsers);
-router.get('/all', userController.getAllUsers);
+// READ ALL USERS
+router.get("/all", userController.getAllUsers);
 
+// READ USER BY ID
+router.get("/getuser/:id", userController.getUserById);
 
-//Read by id path params, query params
-router.get('/getuser/:id', userController.getUserById)
+// UPDATE USER
+router.put(
+     "/updateuser/:id",
+     ValidateUpdateUser,
+     userController.UpdateUser
+);
 
-//Update user by id
-router.put('/updateuser/:id', userController.UpdateUser)
+// SOFT DELETE
+router.delete("/delete/:id", userController.softDeleteuser);
 
-//Delete user
-router.delete('/delete/:id', userController.softDeleteuser)
-// router.delete('/delete/:id', userController.deleteUser) 
-
-
-
-
-module.exports = router
+module.exports 
