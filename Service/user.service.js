@@ -29,10 +29,10 @@ exports.getNextEmpSequence = async (prefix, companyId) => {
 //Create User
 exports.createUser = async (data) => {
   try {
-    const { emp_code, dept_id, ...userData } = data;
+    const { emp_code, dept_id, shift_id, ...userData } = data;
 
     const result = await db.query(
-      `INSERT INTO users (name,company_id,email,mobile,designation,role_id,address,city,pincode,password,status,emp_code,dept_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      `INSERT INTO users (name,company_id,email,mobile,designation,role_id,address,city,pincode,password,status,emp_code,dept_id,shift_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [
         userData.name,
         userData.company_id,
@@ -47,12 +47,13 @@ exports.createUser = async (data) => {
         "active",
         emp_code,
         dept_id || null,
+        shift_id||null
       ]
     );
 
     return result.rows[0];
   } catch (error) {
-    return error;
+   throw error;
   }
 };
 

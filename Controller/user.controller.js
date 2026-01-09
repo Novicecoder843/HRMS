@@ -33,6 +33,7 @@ exports.createUser = async (req, res) => {
       pincode,
       password,
       dept_id,
+      shift_id
     } = req.body;
     let newMobile = "91" + mobile;
 
@@ -85,6 +86,7 @@ exports.createUser = async (req, res) => {
       password: hashPassword,
       emp_code: empCode,
       dept_id,
+      shift_id
     });
     res.status(200).json({
       success: true,
