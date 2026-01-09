@@ -1,7 +1,8 @@
 const { success } = require("zod");
 const shiftService = require("../Service/shift.service");
 
-exports.createShift = async (req, res) => {
+exports.
+createShift = async (req, res) => {
   try {
     const { company_id } = req.user;
     const shiftData = { ...req.body, company_id };
