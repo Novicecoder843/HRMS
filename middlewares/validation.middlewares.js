@@ -3,7 +3,7 @@ const { z } = require("zod");
 //creat user
 const createUserSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  company_id: z.string().min(1, "Company ID is required"),
+  company_id: z.coerce.string().min(1, "Company ID is required"),
   email: z.string().email("Invalid email format"),
   mobile: z.string().length(10, "Mobile number must be 10 digits"),
   designation: z.string().min(2, "Designation required"),

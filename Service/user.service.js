@@ -47,13 +47,13 @@ exports.createUser = async (data) => {
         "active",
         emp_code,
         dept_id || null,
-        shift_id||null
+        shift_id || null,
       ]
     );
 
     return result.rows[0];
   } catch (error) {
-   throw error;
+    throw error;
   }
 };
 
@@ -183,11 +183,11 @@ exports.getAllUsersWithDetails = async () => {
             WHERE u.status = 'active'
             ORDER BY u.id DESC;
     `;
-    const result= await db.query(query);
+    const result = await db.query(query);
     return result.rows;
   } catch (err) {
-    console.error(err)
-    throw new Error("Error fetching detailed users: " + err.message)
+    console.error(err);
+    throw new Error("Error fetching detailed users: " + err.message);
   }
 };
 
@@ -399,7 +399,7 @@ exports.bulkInsertUsers = async (users) => {
 exports.getUserByEmail = async (email) => {
   try {
     const result = await db.query(
-      `SELECT id, name, email, mobile, role_id, address, city, pincode, password
+      `SELECT id, name, email, mobile, role_id, address, city, pincode, password,shift_id
        FROM users WHERE email=$1`,
       [email]
     );

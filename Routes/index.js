@@ -3,15 +3,17 @@ const express = require("express");
 const router = express.Router();
 
 const userRoutes = require("../Routes/user.routes");
-const companyRoutes=require("../Routes/company.routes.js")
+const companyRoutes = require("../Routes/company.routes.js");
 const departmentRoutes = require("../Routes/department.routes.js");
 const roleRoutes = require("../Routes/role.routes.js");
-const shiftRoutes=require("../Routes/shifts.routes.js")
+const shiftRoutes = require("../Routes/shifts.routes.js");
+const attendanceRoutes = require("./attendance.routes");
 
 router.use("/users", userRoutes);
 router.use("/companies", companyRoutes);
 router.use("/departments", departmentRoutes);
-router.use("/roles",roleRoutes);
-router.use("/shifts",shiftRoutes);
+router.use("/roles", roleRoutes);
+router.use("/shifts", shiftRoutes);
+router.use("/attendance", attendanceRoutes);
 
 module.exports = router;
