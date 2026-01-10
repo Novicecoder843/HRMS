@@ -4,6 +4,9 @@ const attendanceController = require("../Controller/attendance.controller");
 const { authenticate } = require("../middlewares/auth.middlewares");
 
 router.post("/punch-in", authenticate, attendanceController.punchIn);
+
 router.post("/punch-out", authenticate, attendanceController.punchOut);
+
+router.get("/report", attendanceController.getAttendanceReport);
 
 module.exports = router;

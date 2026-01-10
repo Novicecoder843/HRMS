@@ -47,3 +47,24 @@ exports.punchOut = async (req, res) => {
     });
   }
 };
+exports.getAttendanceReport = async (req, res) => {
+  try {
+    const { userid, date } = req.query; 
+
+    const report = await attendanceService.getReportService(userid, date);
+    if (report.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No record found. The user had not joined in this period."
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: report.length,
+      data: report
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
