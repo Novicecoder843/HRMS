@@ -15,7 +15,7 @@ exports.createCompany = async (req, res) => {
                email,
                pincode
           } = req.body
-
+          
           const result = await companyService.createCompany({
                name,
                address,
@@ -139,30 +139,30 @@ exports.UpdateCompany = async (req, res) => {
 
 //Delete user by Id
 
-// exports.deleteCompany = async (req, res) => {
-//      try {
-//           const { id } = req.params;
-//           const result = await companyService.deleteCompany(id);
-//           if (result.length === 0) {
-//                return res.status(404).json({
-//                     success: false,
-//                     message: "Company not found",
-//                     data: []
-//                })
-//           }
-//           return res.status(200).json({
-//                success: true,
-//                message: "Company deleted successfully",
-//                data: [],
-//           });
-//      } catch (error) {
-//           return res.status(500).json({
-//                success: false,
-//                message: error.message,
-//                data: [],
-//           });
-//      }
-// }
+exports.deleteCompany = async (req, res) => {
+     try {
+          const { id } = req.params;
+          const result = await companyService.deleteCompany(id);
+          if (result.length === 0) {
+               return res.status(404).json({
+                    success: false,
+                    message: "Company not found",
+                    data: []
+               })
+          }
+          return res.status(200).json({
+               success: true,
+               message: "Company deleted successfully",
+               data: [],
+          });
+     } catch (error) {
+          return res.status(500).json({
+               success: false,
+               message: error.message,
+               data: [],
+          });
+     }
+}
 
 
 // exports.hardDeleteCompany = async (req, res) => {

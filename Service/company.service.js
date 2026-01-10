@@ -85,20 +85,20 @@ exports.updateCompany = async (id, data) => {
      }
 };
 
-//Delete User
-// exports.deleteCompany = async (id) => {
-//      try {
-//           const result = await db.query(`DELETE FROM company WHERE company_id=$1 RETURNING *`, [
-//                id,
-//           ]);
+// Delete Company
+exports.deleteCompany = async (id) => {
+     try {
+          const result = await db.query(`DELETE FROM company WHERE company_id=$1 RETURNING *`, [
+               id,
+          ]);
+          
+          return result.rows;
+     } catch (error) {
+          
+          throw error;
 
-//           return result.rows;
-//      } catch (error) {
-
-//           throw error;
-
-//      }
-// };
+     }
+};
 
 // exports.hardDeleteCompany = async (id) => {
 //      try {
@@ -129,6 +129,6 @@ exports.softDeleteCompany = async (id) => {
 };
 
 
-
+    
 
 

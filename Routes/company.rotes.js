@@ -1,29 +1,60 @@
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require("../middlewares/auth_middleware");
 
 const companyController = require("../Controller/company.controller");
 
-//Creat Company
-router.post('/create', companyController.createCompany);
+const {
+     ValidateCreateCompany,
+     ValidateReadCompany,
+     ValidateUpdateCompany, 
+     ValidateDeleteCompany
+} = require("../middlewares/company_middleware");
 
 
-//Read Company
-router.get('/all', companyController.getAllCompany);
-
-//Read by id path params, query params
-router.get('/getcompany/:id', companyController.getCompanyById)
-
-//Update Company by id
-router.put('/updatecompany/:id', companyController.UpdateCompany)
-
-//Delete Company
-// router.delete('/delete/:id', companyController.deleteCompany) 
 
 
-router.delete('/delete/:id', companyController.softDeleteCompany)
+//
+
+//create company
+router.post(
+     "/create",
+     authenticate,
+     ValidateCreateCompany,
+     companyController.createCompany
+);
+
+
+// Get all companies
+router.get(
+     "/all",
+     authenticate,
+     companyController.getAllCompany
+);
+
+// read companyby id
+router.get("/:id", authenticate, ValidateReadCompany, companyController.getCompanyById);
+
+//update company
+router.put(
+     "/:id",
+     authenticate,
+     ValidateUpdateCompany,
+     companyController.UpdateCompany
+);
+
+//delete company
+router.delete("/:id", authenticate, ValidateDeleteCompany, companyController.deleteCompany);
+
+
+ 
+
+// soft delete
+router.delete('/delete/:id', companyController.softDeleteCompany) 
 // router.delete('/delete/:id', companyController.hardDeleteCompany) 
 
 
 
 module.exports = router;
+
 

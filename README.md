@@ -1,3 +1,4 @@
+//nodemon - restart the server automatically
 # HRMS
 HRMS  - (PAyroll,attendance,leave,user manage)
 

@@ -1,0 +1,9 @@
+//-- pagination:-
+---------------------
+limit  = how many rows to show
+page   = which page you want
+offset = (page - 1) * limit
+Example:
+
+page = 3, limit = 5
+offset = (3-1)*5 = 10 → skip 10 rows → show next 5 rows.
