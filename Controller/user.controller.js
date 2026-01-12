@@ -3,6 +3,11 @@
 const userService = require("../Service/user.service");
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
+const { success } = require("zod");
+const XLSX = require("xlsx");
+const path = require("path");
+const ExcelJS = require("exceljs");
+const fs = require('fs');
 
 
 //Creat User
@@ -54,6 +59,117 @@ exports.createUser = async (req, res) => {
           return;
      }
 };
+
+// UPload files
+
+// exports.uploadUserFile = async (req, res) => {
+//      try {
+//           // 1️⃣ Check file exists
+//           if (!req.file) {
+//                return res.status(400).json({
+//                     success: false,
+//                     message: "No file uploaded",
+//                });
+//           }
+
+//           // 2️⃣ Read Excel file from uploads folder
+//           const workbook = XLSX.readFile(req.file.path);
+
+//           // 3️⃣ Get first sheet
+//           const sheetName = workbook.SheetNames[0];
+//           const sheet = workbook.Sheets[sheetName];
+
+//           // 4️⃣ Convert sheet to JSON
+//           const excelData = XLSX.utils.sheet_to_json(sheet);
+
+//           // 5️⃣ Send response
+//           return res.status(200).json({
+//                success: true,
+//                message: "Excel file uploaded & read successfully",
+//                fileName: req.file.filename,
+//                data: excelData,
+//           });
+
+//      } catch (error) {
+//           console.log(error);
+//           return res.status(500).json({
+//                success: false,
+//                message: error.message,
+//           });
+//      }
+// };
+exports.uploadUserFile = async (req, res) => {
+     try {
+          console.log("FILE:", req.file); //  DEBUG
+
+          if (!req.file) {
+               return res.status(400).json({
+                    success: false,
+                    message: "No file uploaded",
+               });
+          }
+
+          const workbook = XLSX.readFile(req.file.path);
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const excelData = XLSX.utils.sheet_to_json(sheet);
+
+          return res.status(200).json({
+               success: true,
+               message: "Excel file uploaded & read successfully",
+               fileName: req.file.filename,
+               data: excelData,
+          });
+
+     } catch (error) {
+          console.error(error);
+          return res.status(500).json({
+               success: false,
+               message: error.message,
+          });
+     }
+};
+
+
+//Download file
+
+exports.downloadFile = (req, res) => {
+     try {
+          const fileName = req.params.filename;
+
+          // ✅ filename check
+          if (!fileName) {
+               return res.status(400).json({
+                    success: false,
+                    message: "Filename is required in URL",
+               });
+          }
+          
+          const filePath = path.join(__dirname, "../uploads", fileName);
+          console.log("Filename:", fileName);
+          console.log("File path:", filePath);
+          console.log("File exists:", fs.existsSync(filePath));
+
+
+          if (!fs.existsSync(filePath)) {
+               return res.status(404).json({
+                    success: false,
+                    message: "File not found",
+               });
+          }
+
+          res.download(filePath, fileName);
+
+     } catch (error) {
+          console.error(error);
+          res.status(500).json({
+               success: false,
+               message: error.message,
+          });
+     }
+};
+
+
 
 //login user:-
 

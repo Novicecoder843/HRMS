@@ -2,8 +2,22 @@ const express = require("express");
 const router = express.Router();
 
 const { authenticate } = require("../middlewares/auth_middleware");
-
 const userController = require("../Controller/user.controller");
+ 
+const upload = require("../middlewares/upload_middleware");
+
+router.post(
+     "/user-bulkupload",
+     authenticate,
+     upload.single("file"), 
+     userController.uploadUserFile
+);
+router.get("/download/:filename",
+     authenticate,
+     userController.downloadFile);
+
+
+
 
 const {
      ValidateCreateUser,
@@ -15,6 +29,9 @@ const {
 // ================= CREATE USER =================
 
 router.post("/adduser", ValidateCreateUser, userController.createUser);
+
+
+
 
 // ================= LOGIN =================
 

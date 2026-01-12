@@ -25,7 +25,19 @@ exports.createUser = async (data) => {
           
           throw new Error(error);
      }
+}
+
+// upload fileservioce
+exports.insertUsersFromExcel = async (users) => {
+     for (const user of users) {
+          await db.query(
+               `INSERT INTO users (name,company_id,email,mobile,designation,role,address,pincode,city,password)
+       VALUES ($1, $2, $3, $4, $5, $6 ,$7 ,$8 ,$9,$10)`,
+               [user.name, user.company_id,user.email,user.mobile,user.designation,user.role,user.address,user.pincode,user.city,user.password]
+          );
+     }
 };
+
      
 // login
 
