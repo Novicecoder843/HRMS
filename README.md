@@ -25,3 +25,9 @@ Create CRUD for Each Module with proper API method and Folder and file structure
 -view all - getall
 -edit - updateby id with data api
 -delete - deleteby id api
+
+
+
+--- logging mechanism
+--api logs and error logs
+-- correct response with status code

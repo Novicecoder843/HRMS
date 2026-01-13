@@ -12,7 +12,7 @@ exports.punchInService = async (employee_id, shift_id) => {
   if (attRes.rows.length === 0) {
     const newAtt = await db.query(
       `INSERT INTO attendance (user_id, shift_id, date, status)
-            VALUES ($1, $2, $3, 'Present') RETURNING id`,
+            VALUES ($1, $2, $3, 'Absent') RETURNING id`,
       [employee_id, shift_id, today]
     );
     attendance_id = newAtt.rows[0].id;
@@ -74,7 +74,7 @@ exports.punchOutService = async (employee_id) => {
   const updateQuery = `
     UPDATE attendance 
     SET 
-        total_minutes = ( -- Yahan column ka naam badal diya hai
+        total_minutes = ( 
             WITH logs AS (
                 SELECT 
                     punch_time,
@@ -83,12 +83,25 @@ exports.punchOutService = async (employee_id) => {
                 FROM attendance_logs
                 WHERE attendance_id = $1
             )
-            -- ROUND() function value ko round figure mein rakhega (jaise 20.33 ke bajaye 20)
-            -- / 60 se seconds Minutes mein badal jayenge
+            
+            
             SELECT COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (next_punch_time - punch_time)) / 60)), 0)
             FROM logs
             WHERE punch_type = 'IN' AND next_punch_time IS NOT NULL
         ),
+
+        status = CASE 
+            WHEN (
+                SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (next_punch_time - punch_time)) / 60), 0)
+                FROM (
+                    SELECT punch_time, punch_type, LEAD(punch_time) OVER (ORDER BY punch_time) as next_punch_time
+                    FROM attendance_logs WHERE attendance_id = $1
+                ) AS logs_internal
+                WHERE punch_type = 'IN' AND next_punch_time IS NOT NULL
+            ) >= 480 THEN 'Present' 
+            ELSE 'Absent'
+        END,
+
         first_punch_in = (SELECT MIN(punch_time) FROM attendance_logs WHERE attendance_id = $1),
         last_punch_out = (SELECT MAX(punch_time) FROM attendance_logs WHERE attendance_id = $1)
     WHERE id = $1 RETURNING *`;

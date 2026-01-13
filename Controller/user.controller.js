@@ -462,7 +462,7 @@ exports.loginUser = async (req, res) => {
         shift_id: user.shift_id
       },
       process.env.JWT_SECRET || "secret123",
-      { expiresIn: "1h" }
+      { expiresIn: "9h" }
     );
 
     res.status(200).json({

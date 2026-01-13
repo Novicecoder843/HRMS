@@ -3,7 +3,6 @@ const attendanceService = require("../Service/attendance.service");
 
 exports.punchIn = async (req, res) => {
   try {
-
     console.log("FULL DECODED USER FROM TOKEN:", req.user);
 
     const employee_id = req.user.id;
@@ -17,14 +16,14 @@ exports.punchIn = async (req, res) => {
     }
 
     const data = await attendanceService.punchInService(employee_id, shift_id);
-    return res.status(200).json({
+    return res.status(201).json({
       success: true,
       message: "Punch In Successful",
       data,
-      user_id: employee_id
+      user_id: employee_id,
     });
   } catch (err) {
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
       message: err.message,
     });
@@ -49,20 +48,20 @@ exports.punchOut = async (req, res) => {
 };
 exports.getAttendanceReport = async (req, res) => {
   try {
-    const { userid, date } = req.query; 
+    const { userid, date } = req.query;
 
     const report = await attendanceService.getReportService(userid, date);
     if (report.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No record found. The user had not joined in this period."
+        message: "No record found. The user had not joined in this period.",
       });
     }
 
     res.status(200).json({
       success: true,
       count: report.length,
-      data: report
+      data: report,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
