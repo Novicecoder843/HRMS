@@ -142,3 +142,4 @@ exports.softDeleteCompany = async (req, res) => {
         });
     }
 };
+

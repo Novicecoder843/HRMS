@@ -36,7 +36,7 @@ app.use((err, req, res, next) => {
     logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method}`);
     res.status(err.status || 500).json({
         success: false,
-        message: "Internal Server Error"
+        message:err.message|| "Internal Server Error"
     });
 });
 
