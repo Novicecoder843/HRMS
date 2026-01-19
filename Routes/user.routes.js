@@ -4,17 +4,16 @@ const router = express.Router();
 const { authenticate } = require("../middlewares/auth_middleware");
 const userController = require("../Controller/user.controller");
  
-const upload = require("../middlewares/upload_middleware");
+const uploads = require("../middlewares/upload_middleware");
+const multer = require('multer');
+const upload=multer({dest:'upload/'})
 
-router.post(
-     "/user-bulkupload",
-     authenticate,
-     upload.single("file"), 
-     userController.uploadUserFile
-);
-router.get("/download/:filename",
-     authenticate,
-     userController.downloadFile);
+
+
+router.post('/upload-users', upload.single('file'), userController.uploadUsers);
+
+
+router.get("/download-detailed",userController.downloadUsersDetailedExcel);
 
 
 
@@ -50,7 +49,6 @@ router.get("/all", userController.getAllUsers);
 
 router.get(
      "/all",
-     authenticate,
      ValidateReadUser,
      userController.getAllUsers
 );
@@ -60,7 +58,6 @@ router.get(
 
 router.put(
      "/user/:id",
-     authenticate,
      ValidateUpdateUser,
      userController.UpdateUser
 );
@@ -70,7 +67,6 @@ router.put(
 
 router.delete(
      "/user/:id",
-     authenticate,
      ValidateDeleteUser,
      userController.deleteUser
 );

@@ -1,42 +1,44 @@
 const jwt = require("jsonwebtoken");
 const { success } = require("zod");
 
+const ignorePaths = ["/users/adduser",
+     "/users/login", "/users/bulk-insert",
+     "/companies/add", "/users/request-reset",
+     "/users/reset-password",];
+
+//Auth middileware
 const authenticate = (req, res, next) => {
      try {
-          // Read token from header
-          const authHeader = req.headers.authorization;
-          console.log(authHeader,'authheaferrrrrrrrrrrrrrrrrrr')
-          if (!authHeader) {
-               return res.status(401).json({
-                    success: false,
-                    message: "Token missing",
-               });
+          if (ignorePaths.includes(req.path)) {
+
+               return next()
           }
 
-          //  Extract token (Bearer <token>)
+          const authHeader = req.headers.authorization;
+          if (!authHeader || !authHeader.startsWith("Bearer ")) {
+               return res.status(401).json({
+                    success: false,
+                    message: "Authorization token missing",
+               });
+          }
+          // implrment expiration - if token expire throw error token expiry
+
           const token = authHeader.split(" ")[1];
 
-          if (!token) {
-               return res.status(401).json({
-                    success: false,
-                    message: "Invalid token format",
-               });
-          }
+          const decode = jwt.verify(token, process.env.JWT_SECRET || "secret123");
 
-          //  Verify token
-          const decoded = jwt.verify(
-               token,
-               process.env.JWT_SECRET || "secret123"
-          );
-          // save logged-in user info
-          req.user = decoded;
+          req.user = decode;
 
-          // 5 Continue to next middleware/controller
           next();
-     } catch (error) {
+     } catch (err) {
+          console.error("JWT Error:", err.message);
+          let errorMessage = "Invalid or expired token";
+          if (err.name === 'TokenExpiredError') {
+               errorMessage = "Token expired";
+          }
           return res.status(401).json({
                success: false,
-               message: "Invalid or expired token",
+               message: errorMessage
           });
      }
 };

@@ -3,19 +3,26 @@ const router = express.Router();
 
 const designationController = require("../Controller/designation.controller1");
 
+const {
+     ValidateCreateDesignation,
+     ValidateReadDesignation,
+     ValidateUpdateDesignation,
+     ValidateDeleteDesignation,
+} = require("../middlewares/designation_middleware")
+
 // CREATE
-router.post("/create", designationController.createDesignation);
+router.post("/create",ValidateCreateDesignation, designationController.createDesignation);
 
 // READ ALL
-router.get("/all", designationController.getAllDesignation);
+router.get("/all",ValidateReadDesignation, designationController.getAllDesignation);
 
 // READ BY ID
-router.get("/:id", designationController.getDesignationById);
+router.get("/:id",ValidateReadDesignation ,designationController.getDesignationById);
 
 // UPDATE
-router.put("/:id", designationController.updateDesignation);
+router.put("/:id",ValidateUpdateDesignation, designationController.updateDesignation);
 
 // DELETE
-router.delete("/:id", designationController.deleteDesignation);
+router.delete("/:id",ValidateDeleteDesignation, designationController.deleteDesignation);
 
 module.exports = router;

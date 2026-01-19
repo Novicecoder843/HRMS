@@ -4,7 +4,7 @@ const userService = require("../Service/user.service");
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const { success } = require("zod");
-const XLSX = require("xlsx");
+const xlsx = require("xlsx");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const fs = require('fs');
@@ -60,72 +60,65 @@ exports.createUser = async (req, res) => {
      }
 };
 
-// UPload files
-
-// exports.uploadUserFile = async (req, res) => {
-//      try {
-//           // 1️⃣ Check file exists
-//           if (!req.file) {
-//                return res.status(400).json({
-//                     success: false,
-//                     message: "No file uploaded",
-//                });
-//           }
-
-//           // 2️⃣ Read Excel file from uploads folder
-//           const workbook = XLSX.readFile(req.file.path);
-
-//           // 3️⃣ Get first sheet
-//           const sheetName = workbook.SheetNames[0];
-//           const sheet = workbook.Sheets[sheetName];
-
-//           // 4️⃣ Convert sheet to JSON
-//           const excelData = XLSX.utils.sheet_to_json(sheet);
-
-//           // 5️⃣ Send response
-//           return res.status(200).json({
-//                success: true,
-//                message: "Excel file uploaded & read successfully",
-//                fileName: req.file.filename,
-//                data: excelData,
-//           });
-
-//      } catch (error) {
-//           console.log(error);
-//           return res.status(500).json({
-//                success: false,
-//                message: error.message,
-//           });
-//      }
-// };
-exports.uploadUserFile = async (req, res) => {
+// upload data
+exports.uploadUsers = async (req, res) => {
      try {
-          console.log("FILE:", req.file); //  DEBUG
-
           if (!req.file) {
                return res.status(400).json({
                     success: false,
-                    message: "No file uploaded",
+                    message: "Please upload an excel file",
                });
           }
 
-          const workbook = XLSX.readFile(req.file.path);
+          const workbook = xlsx.readFile(req.file.path);
           const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          const excelData = XLSX.utils.sheet_to_json(sheet);
+          const excelData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+          console.log(excelData,'excelDataexcelData')
 
-          return res.status(200).json({
+          if (excelData.length === 0) {
+               return res.status(400).json({
+                    success: false,
+                    message: "Excel sheet is empty",
+               });
+          }
+
+          const processData = [];
+          const errors = [];
+
+          console.log(excelData,'excelDataexcelData')
+
+          for (const [index, row] of excelData.entries()) {
+               try {
+                    if (!row.email || !row.name || !row.company_name) {
+                         throw new Error("Missing required fields (email, name, or company_name)");
+                    }
+
+                    const result = await userService.processExcelRow(row);
+                    processData.push(result);
+               } catch (err) {
+                    errors.push({
+                         rowNumber: index + 2,
+                         name: row.user_name,
+                         error: err.message,
+                    });
+               }
+          }
+
+          fs.unlinkSync(req.file.path);
+
+          res.status(200).json({
                success: true,
-               message: "Excel file uploaded & read successfully",
-               fileName: req.file.filename,
-               data: excelData,
+               message: "Excel upload process completed",
+               total: excelData.length,
+               success_count: processData.length,
+               failure_count: errors.length,
+               errors: errors,
           });
-
-     } catch (error) {
-          console.error(error);
-          return res.status(500).json({
+     } catch (err) {
+          if (req.file) fs.unlinkSync(req.file.path);
+          res.status(500).json({
                success: false,
-               message: error.message,
+               message: err.message,
           });
      }
 };
@@ -133,42 +126,52 @@ exports.uploadUserFile = async (req, res) => {
 
 //Download file
 
-exports.downloadFile = (req, res) => {
+exports.downloadUsersDetailedExcel = async (req, res) => {
      try {
-          const fileName = req.params.filename;
+          const users = await userService.getAllUsersWithDetails();
 
-          // ✅ filename check
-          if (!fileName) {
-               return res.status(400).json({
-                    success: false,
-                    message: "Filename is required in URL",
+          const workbook = new ExcelJs.Workbook();
+          const worksheet = workbook.addWorksheet("Users Detail List");
+
+          worksheet.columns = [
+               { header: "Employee Name", key: "user_name", width: 25 },
+               { header: "Email ID", key: "email", width: 30 },
+               { header: "Mobile No.", key: "mobile", width: 15 },
+               { header: "Designation", key: "designation", width: 20 },
+               { header: "Company Name", key: "company_name", width: 25 },
+               { header: "Department", key: "department_name", width: 20 },
+               { header: "Role", key: "role_name", width: 15 },
+          ];
+
+          users.forEach((user) => {
+               worksheet.addRow({
+                    user_name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    designation: user.designation,
+                    company_name: user.company_name,
+                    department_name: user.department_name,
+                    role_name: user.role_name,
                });
-          }
-          
-          const filePath = path.join(__dirname, "../uploads", fileName);
-          console.log("Filename:", fileName);
-          console.log("File path:", filePath);
-          console.log("File exists:", fs.existsSync(filePath));
-
-
-          if (!fs.existsSync(filePath)) {
-               return res.status(404).json({
-                    success: false,
-                    message: "File not found",
-               });
-          }
-
-          res.download(filePath, fileName);
-
-     } catch (error) {
-          console.error(error);
-          res.status(500).json({
-               success: false,
-               message: error.message,
           });
+
+          worksheet.getRow(1).font = { bold: true };
+
+          res.setHeader(
+               "Content-Type",
+               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          );
+          res.setHeader(
+               "Content-Disposition",
+               "attachment; filename=Users_Detailed_Report.xlsx"
+          );
+
+          await workbook.xlsx.write(res);
+          res.status(200).end();
+     } catch (err) {
+          res.status(500).json({ success: false, message: err.message });
      }
 };
-
 
 
 //login user:-
