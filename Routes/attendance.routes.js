@@ -1,21 +1,29 @@
 const express = require("express");
 const Router = express.Router();
 const attendancecontroller = require("../Controller/attendance.controller");
-const router = require("./department.routes");
 
-// create attendance
-router.post("/create", attendancecontroller.createAttendance);
+const {
+     ValidateCreateAttendance,
+     ValidateReadAttendance,
+     ValidateUpdateAttendance,
+     ValidateDeleteAttendance
+} = require("../middlewares/attendance_middleware");
+const router = require("./role.routes");
 
-//read attendance
-router.get("/all", attendancecontroller.getAllAttendance);
+router.post("/create", ValidateCreateAttendance,attendancecontroller.createAttendance);
 
-//read attendance byid
-router.get("/:id", attendancecontroller.getAttendanceById);
+// get all Attendance
+router.get("/all",ValidateReadAttendance,attendancecontroller.getAllAttendance);
 
-// update attendance byid
-router.put("/:id", attendancecontroller.updateAttendance);
+// get department by id
 
-//delete Attendanceby id
-router.delete("/:id", attendancecontroller.deleteAttendance); 
+router.get("/:id", ValidateReadAttendance, attendancecontroller.getAttendanceById);
+
+// update department
+router.put("/:id", ValidateUpdateAttendance,attendancecontroller.updateAttendance);
+
+// delete department
+router.delete("/:id", ValidateDeleteAttendance,attendancecontroller.deleteAttendance);
 
 module.exports = router;
+
