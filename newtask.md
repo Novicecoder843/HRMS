@@ -8,6 +8,7 @@
 5.implement soft delete in delete api
 
 -------------------
+
 6. implement middelware for validation using zod or joi library
 7. add middelware for - authentication mechanism
 8.global authentication mechanisim
