@@ -9,6 +9,7 @@ router.get("/:id", companyController.getCompanyById);   // Read one
 router.put("/:id", companyController.updateCompany);    // Update
 router.delete("/:id", companyController.deleteCompany); // Delete (soft)
 
+
 module.exports = router;
 
 
