@@ -4,33 +4,41 @@ const bcrypt = require("bcrypt");
 
 
 // Create user
-exports.createUser = async (data) => {
+exports.createUser = async (row, company_id, role_id, dept_id, hashPassword, emp_code) => {
      try {
-          const result = await db.query(
-               `INSERT INTO users (name,company_id,email,mobile,designation,role,address,city,pincode,password) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-               [
-                    data.name,
-                    data.company_id,
-                    data.email,
-                    data.mobile,
-                    data.designation,
-                    data.role,
-                    data.address,
-                    data.city,
-                    data.pincode || null,
-                    data.password
-               ]
-          );
+          const query = `
+      INSERT INTO users 
+      (name, company_id, email, mobile, designation, role_id, address, city, pincode, password, status, emp_code, dept_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING *;
+    `;
 
-          return result.rows[0];
-     } catch (error) {
-          console.log(error);
-          
-          throw new Error(error);
+          const values = [
+               row.user_name,
+               company_id,
+               row.email,
+               row.mobile,
+               row.designation,
+               role_id,
+               row.address || "",
+               row.city || "",
+               row.pincode || null,
+               hashPassword,
+               "active",
+               emp_code,
+               dept_id
+          ];
+
+          const newUser = await db.query(query, values);
+          return newUser.rows[0];
+
+     } catch (err) {
+          console.error(err);
+          throw err;
      }
-}
+};
 
-
+//upload data
 
 exports.processExcelRow = async (row) => {
 
@@ -66,6 +74,7 @@ exports.processExcelRow = async (row) => {
                row.company_id,
                row.company_name,
                row.designation || "",
+               
                "active"
           ]
      );
@@ -73,16 +82,12 @@ exports.processExcelRow = async (row) => {
      return result.rows[0];
 };
 
-
-
-
-     
 // login
 
 exports.getUserByEmail = async (email) => {
      try {
           const result = await db.query(
-               `SELECT employee_id, name, company_id, designation, email, mobile, role, address, city, pincode, password
+               `SELECT employee_id, name, company_id,  email, mobile, role_id, address, city, pincode, password
        FROM users
        WHERE email = $1`,
                [email]
@@ -94,99 +99,35 @@ exports.getUserByEmail = async (email) => {
           throw err;
      }
 };
+
+
+// user.service.js mein query aisi honi chahiye:
 exports.getAllUsersWithDetails = async () => {
      try {
-          const query = `SELECT
-    u.name as user_name,
-    u.email,
-    u.mobile,
-    u.designation,
-    u.emp_code,
-    c.name as company_name,
-    d.name as department_name,
-                r.role_name
-            FROM users u
-            LEFT JOIN companies c ON u.company_id = c.company_id
-            LEFT JOIN departments d ON u.dept_id = d.id
-            LEFT JOIN roles r ON u.role_id = r.id
-            WHERE u.status = 'active'
-            ORDER BY u.id DESC;
-    `;
+          const query = `
+               SELECT 
+                    u.name AS name, 
+                    u.email AS email, 
+                    u.mobile AS mobile, 
+                    COALESCE(dg.name, 'N/A') AS designation,   
+                    COALESCE(c.name, 'N/A') AS company_name, 
+                    COALESCE(d.name, 'N/A') AS department_name, 
+                    COALESCE(r.role_name, 'No Role Assigned') AS role_name 
+               FROM users u
+               LEFT JOIN company c ON u.company_id = c.company_id
+               LEFT JOIN department d ON u.department_id = d.department_id
+               -- Yahan dhyan dein: r.role_id ki jagah r.id bhi ho sakta hai aapki table mein
+               LEFT JOIN roles r ON u.role_id = r.role_id 
+               LEFT JOIN designation dg ON u.designation_id = dg.designation_id
+               WHERE u.status = 'active' OR u.status = 'true'
+          `;
           const result = await db.query(query);
+          console.log("Database Data:", result.rows); // Isse terminal mein keys check karein
           return result.rows;
-     } catch (err) {
-          console.error(err);
-          throw new Error("Error fetching detailed users: " + err.message);
+     } catch (error) {
+          throw error;
      }
 };
-@ -147, 25 + 144, 52 @@ const emp_code = `${prefix}${String(seq).padStart(4, "0")}`;
-`INSERT INTO users (name, company_id, email, mobile, designation, role_id, address, city, pincode, password, status, emp_code, dept_id) 
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-     [
-          row.user_name,
-          company_id,
-          row.email,
-          row.mobile,
-          row.designation,
-          role_id,
-          row.address || '',
-          row.city || '',
-          row.pincode || null,
-          hashPassword,
-          "active",
-          emp_code,
-          dept_id,
-          row.user_name,
-          company_id,
-          row.email,
-          row.mobile,
-          row.designation,
-          role_id,
-          row.address || "",
-          row.city || "",
-          row.pincode || null,
-          hashPassword,
-          "active",
-          emp_code,
-          dept_id,
-     ]
-  );
-
-return newUser.rows[0];
-};
-
-//Download user data
-exports.getAllUsersWithDetails = async () => {
-     try {
-          const query = `SELECT
-    u.name as user_name,
-    u.email,
-    u.mobile,
-    u.designation,
-    u.emp_code,
-    c.name as company_name,
-    d.name as department_name,
-                r.role_name
-            FROM users u
-            LEFT JOIN companies c ON u.company_id = c.company_id
-            LEFT JOIN departments d ON u.dept_id = d.id
-            LEFT JOIN roles r ON u.role_id = r.id
-            WHERE u.status = 'active'
-            ORDER BY u.id DESC;
-    `;
-          const result = await db.query(query);
-          return result.rows;
-     } catch (err) {
-          console.error(err)
-          throw new Error("Error fetching detailed users: " + err.message)
-     }
-};
-
-
-
-
-
-
 
 // update password
 

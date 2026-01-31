@@ -1,29 +1,12 @@
 const express = require("express");
-const Router = express.Router();
-const attendancecontroller = require("../Controller/attendance.controller");
+const router = express.Router();
+const attendanceController = require("../Controller/attendance.controller");
+const { authenticate } = require("../middlewares/auth_middleware");
 
-const {
-     ValidateCreateAttendance,
-     ValidateReadAttendance,
-     ValidateUpdateAttendance,
-     ValidateDeleteAttendance
-} = require("../middlewares/attendance_middleware");
-const router = require("./role.routes");
+// Punching API
+router.post("/punch", authenticate, attendanceController.punchAction);
 
-router.post("/create", ValidateCreateAttendance,attendancecontroller.createAttendance);
-
-// get all Attendance
-router.get("/all",ValidateReadAttendance,attendancecontroller.getAllAttendance);
-
-// get department by id
-
-router.get("/:id", ValidateReadAttendance, attendancecontroller.getAttendanceById);
-
-// update department
-router.put("/:id", ValidateUpdateAttendance,attendancecontroller.updateAttendance);
-
-// delete department
-router.delete("/:id", ValidateDeleteAttendance,attendancecontroller.deleteAttendance);
+// Get My Attendance Report
+router.get("/my-report", authenticate, attendanceController.myReport);
 
 module.exports = router;
-

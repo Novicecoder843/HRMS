@@ -1,5 +1,4 @@
-        
-     
+
 const userService = require("../Service/user.service");
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
@@ -8,6 +7,8 @@ const xlsx = require("xlsx");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const fs = require('fs');
+
+
 
 
 //Creat User
@@ -126,53 +127,46 @@ exports.uploadUsers = async (req, res) => {
 
 //Download file
 
+
 exports.downloadUsersDetailedExcel = async (req, res) => {
      try {
           const users = await userService.getAllUsersWithDetails();
 
-          const workbook = new ExcelJs.Workbook();
-          const worksheet = workbook.addWorksheet("Users Detail List");
+          if (!users || users.length === 0) {
+               return res.status(404).json({ success: false, message: "No data found" });
+          }
+
+          const workbook = new ExcelJS.Workbook();
+          const worksheet = workbook.addWorksheet("Users List");
 
           worksheet.columns = [
-               { header: "Employee Name", key: "user_name", width: 25 },
+               { header: "Employee Name", key: "name", width: 25 },
                { header: "Email ID", key: "email", width: 30 },
                { header: "Mobile No.", key: "mobile", width: 15 },
                { header: "Designation", key: "designation", width: 20 },
                { header: "Company Name", key: "company_name", width: 25 },
                { header: "Department", key: "department_name", width: 20 },
-               { header: "Role", key: "role_name", width: 15 },
+               { header: "Role", key: "role_name", width: 20 },
           ];
 
-          users.forEach((user) => {
-               worksheet.addRow({
-                    user_name: user.name,
-                    email: user.email,
-                    mobile: user.mobile,
-                    designation: user.designation,
-                    company_name: user.company_name,
-                    department_name: user.department_name,
-                    role_name: user.role_name,
-               });
-          });
-
+          worksheet.addRows(users);
           worksheet.getRow(1).font = { bold: true };
 
-          res.setHeader(
-               "Content-Type",
-               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          );
-          res.setHeader(
-               "Content-Disposition",
-               "attachment; filename=Users_Detailed_Report.xlsx"
-          );
+          // --- File Format Fix ---
+          const fileName = "Users_Detailed_Report.xlsx";
+          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+          // Browser ko batana ki file excel hai
+          res.attachment(fileName);
 
           await workbook.xlsx.write(res);
-          res.status(200).end();
+          res.end();
+
      } catch (err) {
-          res.status(500).json({ success: false, message: err.message });
+          res.status(500).json({ success: false, message: "Error: " + err.message });
      }
 };
-
 
 //login user:-
 
@@ -210,14 +204,31 @@ exports.loginUser = async (req, res) => {
           }
 
           // create JWT token
-          const token = jwt.sign(
+          /*const token = jwt.sign(
                {
-                    id: user.id,
+                    id: user.id || user.employee_id || user.user_id,                
                     email: user.email,
                     company_id: user.company_id,
                },
                process.env.JWT_SECRET || "secret123",
-               { expiresIn: "2h" }
+               { expiresIn: "24h" }
+          );
+          */
+          // In your Login Controller - update the token generation
+          const tokenPayload = {
+               // Forcefully check every possible ID name from your database
+               id: user.id || user.employee_id || user.user_id,
+               email: user.email,
+               company_id: user.company_id
+          };
+
+          // CRITICAL DEBUG: Check your terminal after logging in
+          console.log("DEBUG: This is what is being put in the token:", tokenPayload);
+
+          const token = jwt.sign(
+               tokenPayload,
+               process.env.JWT_SECRET || "secret123",
+               { expiresIn: "24h" }
           );
 
 

@@ -1,140 +1,51 @@
-
-const { success } = require("zod");
 const attendanceService = require("../Service/attendance.service");
 
-// create attendance
-
-exports.createAttendance = async (req, res) => {
+exports.punchAction = async (req, res) => {
      try {
-          const { attendance_date, status, check_in, check_out, remarks } = req.body;
-          const result = await attendanceService.createAttendance({
-               user_id: req.id,
-               attendance_date,
-               status,
-               check_in,
-               check_out,
-               remarks
-          });
+          const userId = req.user?.id || req.user?.employee_id;
+
+          const type = req.body.type || req.body.punch_type; // flexible
+
+          const result = await attendanceService.processPunch(userId, type);
+
           res.status(200).json({
                success: true,
-               message: "Attendance created successfully",
-               data: result ,
+               message: `Successfully ${result.punch_type}`,
+               data: result
           });
-
      } catch (error) {
-          res.status(500).json({
+          res.status(400).json({
                success: false,
-               message: error.message,
-               data: [],
-          });
-     }
-          
-};
-
-// Read All:-
-
-exports.getAllAttendance = async (req, res) => {
-     try {
-          const result = await attendanceService.findAll();
-          res.status(200).json({
-               success: true,
-               data: result,
-          });
-
-     } catch (error) {
-          res.status(500).json({
-               success: false,
-               message: error.message,
-          });
-     }
-          
-     
-};
-
-//Read by Id
-
-exports.getAttendanceById = async (req, res) => {
-     try {
-          const { id } = req.params;
-          const result = await attendanceService.getAttendanceById(id);
-          if (!resuit || result.length === 0) {
-               return res.status(404).json({
-                    success: false,
-                    message: "Attendance not found",
-                    data: [],
-               })
-          }
-          res.status(200).json({
-               success: true,
-               message: "attendance fetched successfully",
-               data: result,
-          });
-
-     } catch (error) {
-          res.status(500).json({
-               success: false,
-               message: error.message,
-               data: [],
+               message: error.message
           });
      }
 };
 
-// Update
-
-exports.updateAttendance = async (req, res) => {
+// 2. GET ATTENDANCE REPORt
+exports.myReport = async (req, res) => {
      try {
-          const { id } = req.params;
-          const result = await attendanceService.updateAttendance(id, req.body);
 
-          if (!result || result.length === 0) {
+          const userId = req.query.user_id ? req.query.user_id.toString().trim() : null;
+
+          if (!userId) {
                return res.status(400).json({
                     success: false,
-                    message: "Attendance not found",
-                    data: [],
+                    message: "user_id is required in the query string (e.g., ?user_id=17)"
                });
           }
 
-          res.status(200).json({
+          const data = await attendanceService.getDetailedAttendance(userId);
+
+          // Always good to return a count so you know if data is truly empty
+          res.json({
                success: true,
-               message: "Attendance updated successfully",
-               data: [],
+               results: data.length,
+               data
           });
-     } catch (error) {
-          res.status(500).json({
-               success: false,
-               message: error.message,
-               data: [],
-          });
+
+     } catch (err) {
+          console.error("Controller Error:", err);
+          res.status(500).json({ success: false, error: err.message });
      }
 };
 
-
-//Delete
-
-exports.deleteAttendance = async (req, res) => {
-     try {
-          const { id } = req.params;
-          const result = await attendanceService.deleteAttendance(id);
-
-          if (result.length === 0) {
-               return res.status(404).json({
-                    success: false,
-                    message: "Attendance not found",
-                    data: [],
-               })
-
-          }
-          res.status(200).json({
-               success: false,
-               message: "Attendance delete successfully",
-               data: [],
-          })
-
-     } catch (error) {
-          res.status(500).json({
-               success: false,
-               message: error.message,
-               data: [],
-          });
-     }
-};
