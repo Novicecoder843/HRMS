@@ -20,7 +20,7 @@ router.use("/shifts", shiftRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/leaves", leaveRoutes);
 router.use("/files", fileRoutes);
-
+router.use("/reports", require("./reports.routes"));
 
 
 
