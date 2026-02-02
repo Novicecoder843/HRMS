@@ -24,28 +24,23 @@ exports.punchAction = async (req, res) => {
 // 2. GET ATTENDANCE REPORt
 exports.myReport = async (req, res) => {
      try {
+          // Use user_id from query if it exists, otherwise from token
+          const userId = req.query.user_id || req.user?.id;
+          const { filterType, page, limit, month, year } = req.query;
 
-          const userId = req.query.user_id ? req.query.user_id.toString().trim() : null;
+          console.log("Filter Received:", filterType); // Should print 'last7days'
 
-          if (!userId) {
-               return res.status(400).json({
-                    success: false,
-                    message: "user_id is required in the query string (e.g., ?user_id=17)"
-               });
-          }
+          const data = await attendanceService.getDetailedAttendance(
+               userId,
+               filterType,
+               parseInt(page) || 1,
+               parseInt(limit) || 10,
+               month,
+               year
+          );
 
-          const data = await attendanceService.getDetailedAttendance(userId);
-
-          // Always good to return a count so you know if data is truly empty
-          res.json({
-               success: true,
-               results: data.length,
-               data
-          });
-
+          res.json({ success: true, data });
      } catch (err) {
-          console.error("Controller Error:", err);
           res.status(500).json({ success: false, error: err.message });
      }
 };
-

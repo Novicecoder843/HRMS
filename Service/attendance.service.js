@@ -120,39 +120,54 @@ exports.getMergedattendance = async (userId) => {
 
 
 
-// // Detailed Report
+// Detailed Report
 
+exports.getDetailedAttendance = async (userId, filterType, page = 1, limit = 10, month = null, year = null) => {
+     const offset = (page - 1) * limit;
+     let queryParams = [userId];
+     let dateFilter = "";
 
-exports.getDetailedAttendance = async (userId) => {
+     // 1. Logic for Date Filtering
+     if (filterType === 'today') {
+          dateFilter = "AND m.date::date = CURRENT_DATE";
+     } else if (filterType === 'last7days') {
+          dateFilter = "AND m.date::date >= CURRENT_DATE - INTERVAL '7 days'";
+     } else if (filterType === 'custom' && month && year) {
+          // month and year are pushed into queryParams
+          queryParams.push(parseInt(month), parseInt(year));
+          // month becomes $2, year becomes $3
+          dateFilter = `AND EXTRACT(MONTH FROM m.date) = $2 AND EXTRACT(YEAR FROM m.date) = $3`;
+     }
+
+     // 2. Add Limit and Offset at the end of the array
+     queryParams.push(limit, offset);
+
+     // Calculate dynamic positions for Limit ($) and Offset ($)
+     const limitIdx = queryParams.length - 1;
+     const offsetIdx = queryParams.length;
+
      const query = `
         SELECT 
-            u.email,
-            u.mobile,
-            m.id AS attendance_id, -- Changed from master_id to attendance_id
-            m.date,
-            m.status,
-            m.total_hours,
+            u.email, u.mobile, m.id AS attendance_id, m.date, m.status, m.total_hours,
+            COUNT(*) OVER() as total_count,
             COALESCE(
-                (
-                    SELECT json_agg(logs)
-                    FROM (
-                        /* DISTINCT ON ensure karta hai ki ek hi second/time par duplicate logs na aayein */
-                        SELECT DISTINCT ON (h.punch_time, h.punch_type)
-                            h.punch_type AS type,
-                            TO_CHAR(h.punch_time, 'HH12:MI AM') AS time
-                        FROM attendance_history h
-                        WHERE h.attendance_id = m.id
-                        ORDER BY h.punch_time ASC
-                    ) logs
-                ),
-                '[]'
+                (SELECT json_agg(logs) FROM (
+                    SELECT DISTINCT ON (h.punch_time)
+                        h.punch_type AS type,
+                        TO_CHAR(h.punch_time, 'HH12:MI AM') AS time
+                    FROM attendance_history h
+                    WHERE h.attendance_id = m.id
+                    ORDER BY h.punch_time ASC
+                ) logs), '[]'
             ) AS punch_logs
         FROM attendance_master m
-        JOIN users u ON u.employee_id = m.user_id   
-        WHERE m.user_id = $1
-        ORDER BY m.date DESC;
+        JOIN users u ON u.employee_id = m.user_id 
+        WHERE m.user_id = $1 ${dateFilter}
+        GROUP BY u.employee_id, u.email, u.mobile, m.id
+        ORDER BY m.date DESC
+        LIMIT $${limitIdx} OFFSET $${offsetIdx};
     `;
 
-     const result = await db.query(query, [userId]);
+     const result = await db.query(query, queryParams);
      return result.rows;
 };

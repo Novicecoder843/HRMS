@@ -19,3 +19,5 @@ send token with user data , dont send the password
 9th DEc
 - implement validation using jod or joi for every route
 -- midelware function
+-- implimention with pagination attendance with today, last7 days and custom 
+-- custom means showing each month and each year
