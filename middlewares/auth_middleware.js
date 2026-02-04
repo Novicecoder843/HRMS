@@ -5,7 +5,7 @@ const { success } = require("zod");
 const ignorePaths = ["/users/adduser", "/role/create",
      "/users/login", "/users/bulk-insert",
      "/companies/add", "/users/request-reset",
-     "/users/reset-password",];
+     "/users/reset-password","/leave/add-type"];
 
 
 // AUTH MIDDLEWARE
