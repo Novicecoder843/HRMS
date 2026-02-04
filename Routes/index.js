@@ -8,6 +8,7 @@ const departmentRoutes = require("../Routes/department.routes");
 const RoleRoutes = require("../Routes/role.routes");
 const attendanceRoutes = require("../Routes/attendance.routes");
 const leaveRoutes = require("../Routes/leave.routes");
+const shiftRoutes = require("../Routes/shift.routes");
 
 router.use("/users", userRoutes);
 router.use("/companies", companyRoutes);
@@ -16,5 +17,6 @@ router.use("/department", departmentRoutes);
 router.use("/Role", RoleRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/leave", leaveRoutes);
+router.use("/shift", shiftRoutes);
 
 module.exports = router;
