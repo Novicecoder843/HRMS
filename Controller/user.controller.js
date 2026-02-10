@@ -3,6 +3,8 @@ const userService = require('../Service/user.service')
 
 exports.createUser = async function(req,res){
 
+
+    
     try{
 
         const {name,comapny_id,email,mobile,desgnation,password} = req.body
