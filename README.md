@@ -6,12 +6,13 @@ HRMS  - (PAyroll,attendance,leave,user manage)
 1. Master Tables
 
 # companies
-company_id, name, address, industry, settings
 CREATE TABLE companies (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     ALIAS
     addrees
+    email
+    password
     city
     pincode
     is_active BOOLEAN DEFAULT TRUE,
@@ -19,6 +20,14 @@ CREATE TABLE companies (
     updATED_AT
     DELETED_AT
 );
+
+// company Sign up 
+// company detils create - with email and password , role company - superadmin
+//company log in(token generate, company - superadmin)
+
+---comapny role crud- rolename,id,company_id,sgtatus,created,updatedat
+-- user crud - 
+
 
 
 # departments
@@ -28,12 +37,20 @@ dept_id, company_id, dept_name, manager_id
 designation_id, name, level, company_id
 
 # users (employees)
-user_id, emp_code, first_name, last_name, email, phone,
+<!-- user_id, emp_code, first_name, last_name, email, phone,
 company_id, dept_id, designation_id,role_id
-date_of_joining, date_of_exit, status
+date_of_joining, date_of_exit, status -->
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
+    emp_code
+    first_name
+    last_name
+    dept_id
+    designation_id
+    date_of_joining
+    date_of_exit
+    mobile
     company_id BIGINT,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
