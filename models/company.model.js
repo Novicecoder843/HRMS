@@ -2,7 +2,7 @@ const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 
 const Company = {
-    create: async (company) => {
+    signup: async (company) => {
         const hashedPassword = await bcrypt.hash(company.password, 10);
         const result = await pool.query(
             `INSERT INTO companies 

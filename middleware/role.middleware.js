@@ -1,18 +1,32 @@
-const roleMiddleware = (...allowedRoles) => {
-    return (req, res, next) => {
-        if (!req.user || !req.user.role) {
-            return res.status(401).json({ error: 'Unauthorized. No role info found.' });
-        }
+const roleMiddleware = (allowedRoles) => {
+  return (req, res, next) => {
+    try {
+      const userRole = req.user?.role_name;
 
-        const userRole = req.user.role.toLowerCase();
-        const normalizedRoles = allowedRoles.map(r => r.toLowerCase());
+      if (!userRole) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
-        if (!normalizedRoles.includes(userRole)) {
-            return res.status(403).json({ error: 'Forbidden. You do not have access to this resource.' });
-        }
+      // Convert to array if single string
+      if (!Array.isArray(allowedRoles)) {
+        allowedRoles = [allowedRoles];
+      }
 
-        next();
-    };
+      // Normalize roles to lowercase
+      const normalizedAllowedRoles = allowedRoles.map(role =>
+        String(role).toLowerCase()
+      );
+
+      if (!normalizedAllowedRoles.includes(userRole.toLowerCase())) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      next();
+    } catch (error) {
+      console.error("Role middleware error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  };
 };
 
 module.exports = roleMiddleware;

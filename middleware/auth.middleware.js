@@ -1,22 +1,31 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
+  try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    
 
-    if (!token) return res.status(401).json({ error: 'No token provided' });
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-console.log("Decoded JWT:", decoded); // <-- Check what’s here
-req.user = decoded;
-
-        
-        next();
-    } catch (err) {
-        res.status(401).json({ error: 'Invalid token' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
+
+    const token = authHeader.split(' ')[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    console.log("Decoded JWT:", decoded);
+
+    // ✅ FIX HERE
+    req.user = {
+      id: parseInt(decoded.id),
+      role_name: decoded.role,   // map role → role_name
+      email: decoded.email
+    };
+
+    next();
+
+  } catch (error) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 };
 
 module.exports = authMiddleware;

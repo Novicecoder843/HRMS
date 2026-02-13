@@ -2,7 +2,7 @@ const companyService = require('../services/company.service');
 
 const companyController = {
 
-    signup: async (req, res) => {
+    signupCompany: async (req, res) => {
         try {
             await companyService.signup(req.body);
 
@@ -15,7 +15,7 @@ const companyController = {
         }
     },
 
-    login: async (req, res) => {
+    loginCompany: async (req, res) => {
         try {
             const { email, password } = req.body;
 
@@ -24,7 +24,7 @@ const companyController = {
             res.status(200).json({
                 message: 'Login successful',
                 token: data.token,
-                company: data.company
+                // company: data.company
             });
 
         } catch (err) {

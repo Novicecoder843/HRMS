@@ -8,7 +8,7 @@ const companyService = {
         const existingCompany = await Company.findByEmail(data.email);
         if (existingCompany) throw new Error('Email already exists');
 
-        return await Company.create(data);
+        return await Company.signup(data);
     },
 
     login: async (email, password) => {

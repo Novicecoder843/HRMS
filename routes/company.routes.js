@@ -4,8 +4,8 @@ const companyController = require('../controller/company.controller');
 const authMiddleware = require('../middleware/auth.middleware'); // import auth middleware
 
 // Public routes
-router.post('/signup', companyController.signup);
-router.post('/login', companyController.login);
+router.post('/signup', companyController.signupCompany);
+router.post('/login', companyController.loginCompany);
 
 // Protected route example
 router.get('/profile', authMiddleware, (req, res) => {
