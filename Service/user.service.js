@@ -4,53 +4,106 @@ const bcrypt = require("bcrypt");
 
 
 // Create user
-exports.createUser = async (row, company_id, role_id, dept_id, hashPassword, emp_code) => {
-     try {
-          const query = `
-      INSERT INTO users 
-      (name, company_id, email, mobile, designation, role_id, address, city, pincode, password, status, emp_code, dept_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-      RETURNING *;
+
+// user.service.js
+
+// exports.createUser = async (data) => {
+//      try {
+//           const query = `
+//             INSERT INTO users 
+//             (
+//                 name, 
+//                 company_id, 
+//                 email, 
+//                 mobile, 
+//                 designation, 
+//                 role_id, 
+//                 address, 
+//                 city, 
+//                 pincode, 
+//                 password, 
+//                 profile_image, 
+//                 status
+//             )
+//             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+//             RETURNING *;
+//         `;
+
+//           const values = [
+//                data.name,
+//                data.company_id,
+//                data.email,
+//                data.mobile,
+//                data.designation,
+//                data.role,           // Mapped from 'role_id' in your controller
+//                data.address || "",
+//                data.city || "",
+//                data.pincode || null,
+//                data.password,       // The hashed password
+//                data.profile_image,
+//                "active"             // Default status
+//           ];
+
+//           const newUser = await db.query(query, values);
+//           return newUser.rows[0];
+
+//      } catch (err) {
+//           // This will catch unique constraints or data type errors
+//           throw err;
+//      }
+// };
+
+
+exports.createUser = async (userData) => {
+     const query = `
+        INSERT INTO users (
+            name, company_id, email, mobile, 
+            designation, role_id, address, city, 
+            pincode, password, profile_image, status
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING *;
     `;
 
-          const values = [
-               row.user_name,
-               company_id,
-               row.email,
-               row.mobile,
-               row.designation,
-               role_id,
-               row.address || "",
-               row.city || "",
-               row.pincode || null,
-               hashPassword,
-               "active",
-               emp_code,
-               dept_id
-          ];
+     const values = [
+          userData.name,
+          userData.company_id,
+          userData.email,
+          userData.mobile,
+          userData.designation,
+          userData.role_id,
+          userData.address,
+          userData.city,
+          userData.pincode,
+          userData.password,
+          userData.profile_image,
+          "active" // Default status
+     ];
 
-          const newUser = await db.query(query, values);
-          return newUser.rows[0];
-
+     try {
+          const result = await db.query(query, values);
+          return result.rows[0];
      } catch (err) {
-          console.error(err);
+          // Specific DB error handling
+          if (err.code === '23505') { // PostgreSQL unique violation
+               throw new Error("Email or Mobile already exists");
+          }
           throw err;
      }
 };
-
 //upload data
 
 exports.processExcelRow = async (row) => {
 
-     // 1️⃣ Validate required fields
+     //  Validate required fields
      if (!row.name || !row.email || !row.mobile || !row.company_id || !row.company_name) {
           throw new Error("Missing required fields");
      }
 
-     // 2️⃣ Hash password
+     //  Hash password
      const hashPassword = await bcrypt.hash(row.password || "Pass@123", 10);
 
-     // 3️⃣ Insert directly into users table
+     //  Insert directly into users table
      const result = await db.query(
           `INSERT INTO users (
         name,
@@ -212,8 +265,9 @@ exports.updateUser = async (id, data) => {
                role=$6,
                address=$7,
                city=$8,
-               pincode=$9
-               where employee_id= $10
+               pincode=$9,
+               profile_image = COALESCE($10, profile_image) -- Keep old image if no new one provided,
+               where employee_id= $11
               RETURNING * `,
                [
                     data.name,
@@ -225,6 +279,7 @@ exports.updateUser = async (id, data) => {
                     data.address,
                     data.city,
                     data.pincode,
+                    data.profile_image || null,
                     id,
                ]
           );

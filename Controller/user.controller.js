@@ -12,54 +12,117 @@ const fs = require('fs');
 
 
 //Creat User
+// exports.createUser = async (req, res) => {
+//      try {
+//           const {
+//                name,
+//                company_id,
+//                email,
+//                mobile,      // Get the raw number from Postman
+//                designation,
+//                role_id,
+//                address,
+//                city,
+//                pincode,
+//                password,
+//           } = req.body;
+
+//           // 1. Capture image path
+//           let profileImagePath = req.file ? req.file.path : null;
+
+//           // 2. Format the mobile number
+//           let formattedMobile = "91" + mobile;
+
+//           // 3. Hash the password
+//           const hashPassword = await bcrypt.hash(password, 9);
+
+//           // 4. Pass the CORRECT variables to the service
+//           const result = await userService.createUser({
+//                name,
+//                company_id,
+//                email,
+//                mobile: formattedMobile, // Use the one with "91"
+//                designation,
+//                role: role_id,           // Match the key 'role' used in your service
+//                address,
+//                city,
+//                pincode,
+//                password: hashPassword,
+//                profile_image: profileImagePath
+//           });
+
+//           res.status(200).json({
+//                success: true,
+//                message: "User created successfully",
+//                data: result || [],
+//           });
+//      } catch (error) {
+//           console.log(error);
+//           res.status(500).json({
+//                success: false,
+//                message: error.message,
+//                data: [],
+//           });
+//      }
+// };
+
+// user.controller.js
+
 exports.createUser = async (req, res) => {
      try {
-
           const {
-               name,
-               company_id,
-               email,
-               mobile,
-               designation,
-               role,
-               address,
-               city,
-               pincode,
-               password,
-          } = req.body
- 
-          let newMobile = "91" + mobile;
-          const hashPassword = await bcrypt.hash(password, 9);
-          const result = await userService.createUser({
-              
-               name,
-               company_id,
-               email,
-               mobile,
-               designation,
-               role,
-               address,
-               city,
-               pincode,
-               password: hashPassword
+               name, company_id, email, mobile,
+               designation, role_id, address, city,
+               pincode, password
+          } = req.body;
 
+          // 1. Check if file was uploaded
+          const profileImagePath = req.file ? req.file.path : null;
+
+          // 2. Data Formatting
+          const formattedMobile = mobile.startsWith("91") ? mobile : "91" + mobile;
+          const hashPassword = await bcrypt.hash(password, 9);
+
+          // 3. Call Service
+          const result = await userService.createUser({
+               name,
+               company_id,
+               email,
+               mobile: formattedMobile,
+               designation,
+               role_id, // Passed as is, service will map to DB column
+               address: address || "",
+               city: city || "",
+               pincode: pincode || null,
+               password: hashPassword,
+               profile_image: profileImagePath
           });
-          res.status(200).json({
+
+          res.status(201).json({
                success: true,
-               message: "User created succesfully",
-               data: result || [],
+               message: "User created successfully",
+               data: result
           });
-          return;
+
      } catch (error) {
-          console.log(error)
+          // 🚨 CLEANUP: If DB fails, delete the uploaded file
+          if (req.file) {
+               fs.unlink(req.file.path, (err) => {
+                    if (err) console.error("Error deleting file after DB failure:", err);
+               });
+          }
+
+          console.error("Controller Error:", error);
           res.status(500).json({
                success: false,
-               message: error.message,
-               data: [],
+               message: error.message || "Internal Server Error",
           });
-          return;
      }
 };
+
+
+
+
 
 // upload data
 exports.uploadUsers = async (req, res) => {
@@ -204,16 +267,16 @@ exports.loginUser = async (req, res) => {
           }
 
           // create JWT token
-          /*const token = jwt.sign(
-               {
-                    id: user.id || user.employee_id || user.user_id,                
-                    email: user.email,
-                    company_id: user.company_id,
-               },
-               process.env.JWT_SECRET || "secret123",
-               { expiresIn: "24h" }
-          );
-          */
+          // const token = jwt.sign(
+          //      {
+          //           id: user.id || user.employee_id || user.user_id,                
+          //           email: user.email,
+          //           company_id: user.company_id,
+          //      },
+          //      process.env.JWT_SECRET || "secret123",
+          //      { expiresIn: "24h" }
+          // );
+          
           // In your Login Controller - update the token generation
           const tokenPayload = {
                // Forcefully check every possible ID name from your database
@@ -378,6 +441,10 @@ exports.UpdateUser = async (req, res) => {
                pincode,
           } = req.body;
 
+          // If a new file is uploaded, add the path to our update object
+          if (req.file) {
+               updateData.profile_image = req.file.path;
+          }
           const result = await userService.updateUser(id, {
                name,
                company_id,

@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const { success } = require("zod");
 
 
-const ignorePaths = ["/users/adduser", "/role/create",
+const ignorePaths = ["/users/adduser", "/role/create","/payroll/create",
      "/users/login", "/users/bulk-insert",
      "/companies/add", "/users/request-reset",
      "/users/reset-password","/leave/add-type"];

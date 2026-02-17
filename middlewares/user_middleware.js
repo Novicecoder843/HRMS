@@ -7,7 +7,7 @@ const createUserSchema = z.object({
      email: z.string().email("Invalid email format"),
      mobile: z.string().length(10, "Mobile must be 10 digit"),
      designation: z.string().min(2, "designation required"),
-     role: z.string().min(2, "role required"),
+     role: z.coerce.number().optional(),
      address: z.string().optional(),
      city: z.string().optional(),
      pincode: z.string().optional(),

@@ -1,5 +1,5 @@
 // db.js
-const { Pool } = require('pg');
+const {Pool} = require('pg');
 require('dotenv').config();
 
 const pgconnection = new Pool({
