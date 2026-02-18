@@ -8,4 +8,5 @@ router.get("/:id", payrollController.getPayrollById);
 router.put("/update/:id", payrollController.updatePayroll);
 router.delete("/:id", payrollController.deletePayroll);
 
+router.get("/salary-slip/:id", payrollController.generateSalarySlip);
 module.exports = router;

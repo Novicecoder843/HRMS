@@ -1,5 +1,6 @@
 const payrollService = require("../Service/payroll.service");
 
+const generatePayrollPDF  = require("../utils/payrollpdf");
 
 /**
  * Create Payroll
@@ -113,3 +114,27 @@ exports.deletePayroll = async (req, res) => {
           });
      }
 };
+
+
+// generate salary
+
+
+exports.generateSalarySlip = async (req, res) => {
+     try {
+          const employeeId = Number(req.params.id);
+          const { month, year } = req.query;
+
+          // 1. Call the service
+          const payrollData = await payrollService.generatePayroll(employeeId, month, year);
+
+          // 2. Add employee ID for the PDF header
+          payrollData.employee_id = employeeId;
+
+          // 3. This triggers the PDF download in the browser
+          generatePayrollPDF(res, payrollData);
+
+     } catch (error) {
+          res.status(500).json({ success: false, error: error.message });
+     }
+};
+
