@@ -101,61 +101,132 @@ exports.deletePayrollRecord = async (id) => {
      return result.rows[0];
 };
 
-// salry slip
 
 
-exports.generatePayroll = async (employeeId, month, year) => {
-     // Use LOWER() to ensure "January" matches "january"
+
+// 2. Define the Service Logic
+
+
+
+
+
+
+const generatePayroll = async (employeeId, month, year) => {
+     // Database query updated to include more fields from the users table
      const payrollResult = await db.query(
-          `SELECT basic_salary, allowances, deductions
-         FROM payroll
-         WHERE user_id = $1 
-         AND LOWER(month) = LOWER($2) 
-         AND year = $3`,
+          `SELECT 
+            p.basic_salary, p.allowances, p.deductions, p.net_salary,
+            u.name as employee_name, u.emp_code, u.designation, 
+            u.join_date, u.role, u.address, u.city, u.pincode
+         FROM public.payroll p
+         JOIN public.users u ON p.user_id = u.employee_id
+         WHERE p.user_id = $1 
+         AND LOWER(p.month) = LOWER($2) 
+         AND p.year = $3`,
           [employeeId, month, year]
      );
 
      if (payrollResult.rows.length === 0) {
-          throw new Error("Payroll data not found in database. Check user_id, month, and year.");
+          throw new Error("Payroll data not found for the specified period.");
      }
 
      const payroll = payrollResult.rows[0];
 
-     // Map month string to number for attendance query
-     const monthMap = {
-          'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
-          'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
-     };
-     const monthNumber = monthMap[month.toLowerCase()];
-
-     const attendanceResult = await db.query(
-          `SELECT 
-            COUNT(CASE WHEN status = 'Present' THEN 1 END) AS present_days,
-            COALESCE(SUM(total_hours), 0) AS total_hours
-         FROM attendance_master
-         WHERE user_id = $1
-         AND EXTRACT(MONTH FROM date) = $2
-         AND EXTRACT(YEAR FROM date) = $3`,
-          [employeeId, monthNumber, year]
-     );
-
-     const { present_days, total_hours } = attendanceResult.rows[0];
-
-     // Math
-     const basic = Number(payroll.basic_salary);
-     const allow = Number(payroll.allowances);
-     const deduct = Number(payroll.deductions);
-     const finalSalary = ((basic + allow - deduct) / 240) * Number(total_hours); // 240 = 30 days * 8 hours
+     // Numbers ensure calculation accuracy
+     const basic = Number(payroll.basic_salary) || 0;
+     const allow = Number(payroll.allowances) || 0;
+     const deduct = Number(payroll.deductions) || 0;
+     const finalSalary = (basic + allow - deduct).toFixed(2);
 
      return {
+          // --- Company Branding ---
+          company_name: "TECH SOLUTIONS PVT LTD",
+          company_address: "21023 Pearson Point Road, Gateway Avenue",
+
+          // --- Header Right Side ---
+          period_header: `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`,
+
+          // --- Employee Info (From Database Schema) ---
           employee_id: employeeId,
-          employee_name: "Test Employee",
-          basic_salary: basic,
-          allowances: allow,
-          deductions: deduct,
-          present_days,
-          total_hours,
+          emp_code: payroll.emp_code || `EMP${employeeId}`, // Database ka emp_code use kiya
+          employee_name: payroll.employee_name,
+          designation: payroll.designation || "Staff",
+          role: payroll.role || "developer",
+          joining_date: payroll.join_date
+               ? new Date(payroll.join_date).toLocaleDateString('en-GB')
+               : "N/A",
+
+          // Employee Address (Extra detail for professional look)
+          employee_address: `${payroll.address || ''}, ${payroll.city || ''} - ${payroll.pincode || ''}`,
+
+          // --- Salary Table Breakdown ---
+          basic_salary: basic.toFixed(2),
+          allowances: allow.toFixed(2),
+          deductions: deduct.toFixed(2),
+          total_earnings: (basic + allow).toFixed(2),
+          total_deductions: deduct.toFixed(2),
           final_salary: finalSalary
      };
 };
+
+module.exports = { generatePayroll };
+
+// const generatePayroll = async (employeeId, month, year) => {
+//      // Database query updated to include more fields from the users table
+//      const payrollResult = await db.query(
+//           `SELECT 
+//             p.basic_salary, p.allowances, p.deductions, p.net_salary,
+//             u.name as employee_name, u.emp_code, u.designation_id, 
+//             u.join_date, u.role_id, u.company,u.company_address,
+//          FROM public.payroll p
+//          JOIN public.users u ON p.user_id = u.employee_id
+//          WHERE p.user_id = $1 
+//          AND LOWER(p.month) = LOWER($2) 
+//          AND p.year = $3`,
+//           [employeeId, month, year]
+//      );
+
+//      if (payrollResult.rows.length === 0) {
+//           throw new Error("Payroll data not found for the specified period.");
+//      }
+
+//      const payroll = payrollResult.rows[0];
+
+//      // Numbers ensure calculation accuracy
+//      const basic = Number(payroll.basic_salary) || 0;
+//      const allow = Number(payroll.allowances) || 0;
+//      const deduct = Number(payroll.deductions) || 0;
+//      const finalSalary = (basic + allow - deduct).toFixed(2);
+
+//      return {
+//           // --- Company Branding ---
+//           company_name: "TECH SOLUTIONS PVT LTD",
+//           company_address: "21023 Pearson Point Road, Gateway Avenue",
+
+//           // --- Header Right Side ---
+//           period_header: `${month.charAt(0).toUpperCase() + month.slice(1)} ${year}`,
+
+//           // --- Employee Info (From Database Schema) ---
+//           employee_id: employeeId,
+//           emp_code: payroll.emp_code || `EMP${employeeId}`, // Database ka emp_code use kiya
+//           employee_name: payroll.employee_name,
+//           designation: payroll.designation_id || "Staff",
+//           role: payroll.role || "Employee",
+//           joining_date: payroll.join_date
+//                ? new Date(payroll.join_date).toLocaleDateString('en-GB')
+//                : "N/A",
+
+//           basic_salary: basic.toFixed(2),
+//           allowances: allow.toFixed(2),
+//           deductions: deduct.toFixed(2),
+//           total_earnings: (basic + allow).toFixed(2),
+//           total_deductions: deduct.toFixed(2),
+//           final_salary: finalSalary
+//      };
+// };
+
+// module.exports = { generatePayroll };
+
+
+
 

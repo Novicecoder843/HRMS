@@ -1,6 +1,8 @@
 const payrollService = require("../Service/payroll.service");
 
-const generatePayrollPDF  = require("../utils/payrollpdf");
+const { generatePayrollPDF } = require("../utils/payrollpdf");
+
+const { generatePayroll } = require("../Service/payroll.service");
 
 /**
  * Create Payroll
@@ -116,7 +118,10 @@ exports.deletePayroll = async (req, res) => {
 };
 
 
-// generate salary
+
+// 3. Define and Export the Controller
+
+
 
 
 exports.generateSalarySlip = async (req, res) => {
@@ -124,17 +129,25 @@ exports.generateSalarySlip = async (req, res) => {
           const employeeId = Number(req.params.id);
           const { month, year } = req.query;
 
-          // 1. Call the service
-          const payrollData = await payrollService.generatePayroll(employeeId, month, year);
+          if (!month || !year) {
+               return res.status(400).json({
+                    success: false,
+                    message: "Month and Year are required in query params"
+               });
+          }
 
-          // 2. Add employee ID for the PDF header
-          payrollData.employee_id = employeeId;
+          // Service se formatted data lena
+          const payrollData = await generatePayroll(employeeId, month, year);
 
-          // 3. This triggers the PDF download in the browser
+          // PDF generate karke response bhejna
           generatePayrollPDF(res, payrollData);
 
      } catch (error) {
-          res.status(500).json({ success: false, error: error.message });
+          console.error("Salary Slip Error:", error);
+          res.status(500).json({
+               success: false,
+               error: error.message
+          });
      }
 };
 
