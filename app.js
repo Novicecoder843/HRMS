@@ -1,17 +1,21 @@
-require("dotenv").config();
 const express = require("express");
-const companyRoutes = require("./Routes/company.routes");
-const roleRoutes = require("./Routes/role.routes");
-const userRoutes = require("./Routes/user.routes");
+const cors = require("cors");
+require("dotenv").config();
+
+const companyRoute = require("./Routes/companyRoutes");
+const userRoute = require("./Routes/userRoutes");
 
 const app = express();
 
+// middleware
+app.use(cors());
 app.use(express.json());
 
-app.use("/api/company", companyRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/users", userRoutes);
+// routes
+app.use("/api/company", companyRoute);
+app.use("/api/users", userRoute);
 
+// PORT configuration
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
