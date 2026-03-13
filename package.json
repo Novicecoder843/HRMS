@@ -1,7 +1,7 @@
 {
   "name": "hrms",
   "version": "1.0.0",
-  "description": "",
+  "description": "HRMS  - (PAyroll,attendance,leave,user manage)",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
