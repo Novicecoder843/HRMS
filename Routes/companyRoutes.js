@@ -1,7 +1,8 @@
 const express = require("express");
+
 const router = express.Router();
 
-const companyController = require("../controllers/companyController");
+const companyController = require("../controller/companycontroller");
 
 router.post("/create", companyController.create);
 router.get("/getall", companyController.getAll);
