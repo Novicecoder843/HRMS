@@ -57,25 +57,6 @@ res.status(500).json(error);
 
 };
 
-
-// EDIT USER
-exports.edit = async (req,res)=>{
-
-try{
-
-const user = await User.getUserById(req.params.id);
-
-res.json(user);
-
-}catch(error){
-
-res.status(500).json(error);
-
-}
-
-};
-
-
 // UPDATE USER
 exports.update = async (req,res)=>{
 
