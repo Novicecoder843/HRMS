@@ -1,3 +1,14 @@
+Company admin - register - company details
+Role - companyid,role_name,status - true/false - crud
+
+HR - All
+employee - see profile,update profile
+Manager - developement - 10
+
+---User 
+
+
+
 # HRMS
 HRMS  - (PAyroll,attendance,leave,user manage)
 
@@ -14,6 +25,8 @@ CREATE TABLE companies (
     addrees
     city
     pincode
+    email
+    password
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
     updATED_AT
