@@ -7,14 +7,38 @@ Manager - developement - 10
 
 ---User 
 
+// THIS IS MY PROJECT DETAILS
 
+1. Company Admin
+
+-Registers the company
+
+-Can create users
+
+-Can access all employees
+bcrypt jsonwebtoken
+Full control (CRUD)
+
+2. HR
+
+Can access all users
+
+Manage employees
+
+3. Employee
+
+Can view profile
+
+Can update profile
+
+4. Manager
+
+Can see only his 10 employees
 
 # HRMS
 HRMS  - (PAyroll,attendance,leave,user manage)
 
 # Task 1 requirement
-
-1. Master Tables
 
 # companies
 company_id, name, address, industry, settings
@@ -34,11 +58,6 @@ CREATE TABLE companies (
 );
 
 
-# departments
-dept_id, company_id, dept_name, manager_id
-
-# designations
-designation_id, name, level, company_id
 
 # users (employees)
 user_id, emp_code, first_name, last_name, email, phone,
