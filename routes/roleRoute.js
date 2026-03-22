@@ -1,10 +1,14 @@
 const router = require("express").Router();
-const controller = require("../controllers/roleController");
+const roleController = require("../controllers/roleController");
+const { protect } = require("../middleware/authMiddleware");
 
-router.post("/createroles",controller.createRole);
+// ✅ Create role
+router.post("/createroles", protect, roleController.createRole);
 
-router.get("/getroles",controller.getRoles);
+// ✅ Get all roles
+router.get("/getroles", protect, roleController.getRoles);
 
-router.get("/:value", controller.getRole);
+// ✅ Get role by ID or name
+router.get("/:value", protect, roleController.getRole);
 
 module.exports = router;

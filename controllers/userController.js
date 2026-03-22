@@ -71,26 +71,3 @@ exports.getUsers = async (req, res) => {
  res.json(users);
 };
 
-// Get employees
-exports.getEmployees = async (req, res) => {
- const data = await userModel.getEmployees(req.user.company_id);
- res.json(data);
-};
-
-// Manager team
-exports.getMyTeam = async (req, res) => {
- const data = await userModel.getManagerEmployees(req.user.id);
- res.json(data);
-};
-
-// Profile
-exports.getMyProfile = async (req, res) => {
- const user = await userModel.getUserByEmail(req.user.email);
- res.json(user);
-};
-
-// Update profile
-exports.updateMyProfile = async (req, res) => {
- await userModel.updateUser(req.body, req.user.id);
- res.json({ message: "Updated" });
-};

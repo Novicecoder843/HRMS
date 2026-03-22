@@ -1,30 +1,27 @@
-const db = require("../config/db");
-
 const jwt = require("jsonwebtoken");
-
 exports.protect = (req, res, next) => {
+  try {
+    const header = req.headers.authorization;
 
- const header = req.headers.authorization;
+    if (!header || !header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        message: "Token missing or invalid format"
+      });
+    }
 
- if (!header) {
-  return res.status(401).json({ message: "Token missing" });
- }
+    const token = header.split(" ")[1];
 
- const token = header.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
- try {
+    req.user = decoded;
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    next();
 
-  req.user = decoded;
-
-  next();
-
- } catch (err) {
-
-  res.status(401).json({ message: "Invalid token" });
-
- }
-
+  } catch (err) {
+    
+    return res.status(401).json({
+      message: "Invalid or expired token"
+    });
+  }
 };
 

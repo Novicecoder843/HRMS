@@ -5,8 +5,9 @@ const companyModel = require("../models/companyModel");
 
 // Register Company
 exports.registerCompany = async (req, res) => {
+
   try {
-    const { name, email, password, address, city } = req.body;
+    const { name, email, password, ALIAS , pincode , address, city } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -24,36 +25,18 @@ exports.registerCompany = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 1️⃣ Create company
-    const result = await companyModel.createCompany({
+    await companyModel.registerCompany({
       name,
       email,
       password: hashedPassword,
+      ALIAS,
+      pincode,
       address,
       city
     });
 
-    const companyId = result.insertId;
-
-    //  2️⃣ CREATE ADMIN USER (IMPORTANT)
-    await db.query(
-      "INSERT INTO users (company_id, email, password_hash, role_id) VALUES (?, ?, ?, ?)",
-      [companyId, email, hashedPassword, 1] // role_id = 1 (ADMIN)
-    );
-
-    // 3️⃣ INSERT PERMISSION
-   await db.query(
-    `INSERT INTO role_permissions (role_id, permission_name) VALUES
-    (1, 'CREATE_USER'),
-    (1, 'VIEW_USERS'),
-    (1, 'VIEW_EMPLOYEES'),
-    (1, 'VIEW_ASSIGNED_EMPLOYEES'),
-    (1, 'UPDATE_PROFILE')
-  `);
-
     res.status(201).json({
-      message: "Company + Admin created successfully",
-      companyId
+      message: "Company created successfully"
     });
 
   } catch (error) {
@@ -63,7 +46,7 @@ exports.registerCompany = async (req, res) => {
     });
   }
 };
-// Login Company
+
 exports.loginCompany = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -115,5 +98,51 @@ exports.getCompanyProfile = async (req, res) => {
       message: "Server error"
     });
 
+  }
+};
+
+// Update Company Profile
+
+exports.updateCompany = async (req, res) => {
+  try {
+    const companyId = req.user.id;
+    const existingCompany = await companyModel.getCompanyById(companyId);
+
+    if (!existingCompany) {
+      return res.status(404).json({
+        message: "Company not found"
+      });
+    }
+
+    // take only allowed fields
+    const { name, ALIAS, pincode, address, city } = req.body;
+
+    // prepare update data (only if provided)
+    const updateData = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (ALIAS !== undefined) updateData.ALIAS = ALIAS;
+    if (pincode !== undefined) updateData.pincode = pincode;
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+
+    // check if nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        message: "No data provided to update"
+      });
+    }
+
+    await companyModel.updateCompany(companyId, updateData);
+
+    res.json({
+      message: "Company updated successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
   }
 };
