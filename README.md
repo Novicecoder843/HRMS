@@ -83,3 +83,7 @@ Create CRUD for Each Module with proper API method and Folder and file structure
 -view all - getall
 -edit - updateby id with data api
 -delete - deleteby id api
+
+
+//console error//
+//console query and value while runnig
