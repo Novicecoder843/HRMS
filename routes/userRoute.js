@@ -4,9 +4,6 @@ const userController = require("../controllers/userController");
 // 🔐 Middleware
 const { protect } = require("../middleware/authMiddleware");
 
-
-// ================= PUBLIC ROUTES =================
-
 // ✅ USER LOGIN
 router.post("/login", userController.loginUser);
 

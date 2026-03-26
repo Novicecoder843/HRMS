@@ -13,13 +13,15 @@ exports.createUser = async (data) => {
     role_id,
     company_id,
     dept_id,
-    designation_id
+    designation_id,
+    date_of_joining,
+    date_of_exit
   } = data;
 
   const [result] = await db.execute(
     `INSERT INTO users 
-    (emp_code, first_name, last_name, email, phone_no, password_hash, role_id, company_id, dept_id, designation_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (emp_code, first_name, last_name, email, phone_no, password_hash, role_id, company_id, dept_id, designation_id, date_of_joining, date_of_exit)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       emp_code,
       first_name,
@@ -30,7 +32,9 @@ exports.createUser = async (data) => {
       role_id,
       company_id,
       dept_id || null,
-      designation_id || null
+      designation_id || null,
+      date_of_joining || null,
+      date_of_exit || null
     ]
   );
 
@@ -80,7 +84,10 @@ exports.getUserById = async (id, company_id) => {
   const [rows] = await db.execute(
     `SELECT 
       id, emp_code, first_name, last_name, email, phone_no,
-      role_id, dept_id, designation_id, status, is_active, last_login
+      role_id, dept_id, designation_id, status, is_active,
+      last_login, 
+      date_of_joining,
+      date_of_exit
      FROM users 
      WHERE id = ? AND company_id = ?`,
     [id, company_id]
@@ -96,7 +103,11 @@ exports.getAllUsers = async (company_id) => {
   const [rows] = await db.execute(
     `SELECT 
       id, emp_code, first_name, last_name, email, phone_no,
-      role_id, dept_id, designation_id, status, is_active
+      role_id, dept_id, designation_id, status,
+      is_active, 
+      last_login,
+      date_of_joining,
+      date_of_exit
      FROM users 
      WHERE company_id = ?`,
     [company_id]

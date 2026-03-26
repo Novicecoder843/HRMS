@@ -1,6 +1,7 @@
 const userModel = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const db = require("../config/db");
 
 
 // 🔥 GENERATE EMP CODE (AUTO)
@@ -22,13 +23,55 @@ exports.createUser = async (req, res) => {
       password,
       role_id,
       dept_id,
-      designation_id
+      designation_id,
+      date_of_joining,
+      date_of_exit
     } = req.body;
+
+    // ✅ CHECK DEPARTMENT EXISTS
+
+    if (dept_id) {
+      const [dept] = await db.execute(
+        "SELECT id FROM departments WHERE id = ?",
+        [dept_id]
+      );
+
+      if (!dept.length) {
+        return res.status(400).json({
+          message: "Invalid department"
+        });
+      }
+    }
+
+    // ✅ CHECK DESIGNATION BELONGS TO DEPARTMENT
+
+    if (designation_id && dept_id) {
+      const [designation] = await db.execute(
+        "SELECT department_id FROM designations WHERE id = ?",
+        [designation_id]
+      );
+
+      if (!designation.length) {
+        return res.status(400).json({
+          message: "Invalid designation"
+        });
+      }
+
+      if (designation[0].department_id !== dept_id) {
+        return res.status(400).json({
+          message: "Designation does not belong to selected department"
+        });
+      }
+    }
 
     if (!first_name || !email || !password || !role_id) {
       return res.status(400).json({ message: "Required fields missing" });
     }
-
+    if (designation_id && !dept_id) {
+      return res.status(400).json({
+        message: "Department is required when designation is provided"
+      });
+    }
     const existing = await userModel.findByEmail(email, req.user.id);
     if (existing) {
       return res.status(400).json({ message: "User already exists" });
@@ -48,7 +91,9 @@ exports.createUser = async (req, res) => {
       role_id,
       company_id: req.user.id,
       dept_id,
-      designation_id
+      designation_id,
+      date_of_joining,
+      date_of_exit
     });
 
     res.json({ message: "User created successfully" });
@@ -152,7 +197,9 @@ exports.updateUser = async (req, res) => {
       "dept_id",
       "designation_id",
       "status",
-      "is_active"
+      "is_active",
+      "date_of_joining",
+      "date_of_exit"
     ];
 
     let updateData = {};
@@ -166,6 +213,47 @@ exports.updateUser = async (req, res) => {
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: "No data to update" });
     }
+
+
+    // 🔥 HANDLE VALIDATION PROPERLY
+
+    let dept_id = updateData.dept_id;
+    let designation_id = updateData.designation_id;
+
+    // 👉 If only designation is sent, fetch existing dept
+    if (designation_id && !dept_id) {
+      const user = await userModel.getUserById(
+        req.params.id,
+        req.user.id
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      dept_id = user.dept_id;
+    }
+
+    // 👉 Validate relation
+    if (designation_id && dept_id) {
+      const [designation] = await db.execute(
+        "SELECT department_id FROM designations WHERE id = ?",
+        [designation_id]
+      );
+
+      if (!designation.length) {
+        return res.status(400).json({
+          message: "Invalid designation"
+        });
+      }
+
+      if (designation[0].department_id !== dept_id) {
+        return res.status(400).json({
+          message: "Designation does not belong to selected department"
+        });
+      }
+    }
+
 
     await userModel.updateUser(
       req.params.id,
