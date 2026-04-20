@@ -1,31 +1,26 @@
 const roleModel = require("../models/roleModel");
 
-// ✅ CREATE ROLE
+// ➕ CREATE ROLE
 exports.createRole = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { role_name } = req.body;
-    const company_id = req.user.id;
+ 
+    // check duplicate
+    const existing = await roleModel.findRoleByName(role_name, company_id);
 
-    if (!role_name) {
+    if (existing) {
       return res.status(400).json({
-        message: "Role name is required"
-      });
-    }
-
-    const existingRole = await roleModel.findRole(role_name, company_id);
-
-    if (existingRole) {
-      return res.status(400).json({
-        message: "Role already exists"
+        message: "Role already exists in your company"
       });
     }
 
     await roleModel.createRole(role_name, company_id);
 
     res.status(201).json({
-      message: "Role created successfully"
+      message: "Role created successfully ✅"
     });
-
+  
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -33,16 +28,14 @@ exports.createRole = async (req, res) => {
 
 
 
-// ✅ GET ALL ROLES
+// 📄 GET ALL ROLES
 exports.getRoles = async (req, res) => {
   try {
-    const company_id = req.user.id;
+    const company_id = req.user.company_id;
 
     const roles = await roleModel.getRoles(company_id);
 
-    res.json({
-      roles
-    });
+    res.json(roles);
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -51,19 +44,13 @@ exports.getRoles = async (req, res) => {
 
 
 
-// ✅ GET ROLE BY ID OR NAME
-exports.getRole = async (req, res) => {
+// 🔍 GET ROLE BY ID
+exports.getRoleById = async (req, res) => {
   try {
-    const value = req.params.value;
-    const company_id = req.user.id;
+    const company_id = req.user.company_id;
+    const { id } = req.params;
 
-    let role;
-
-    if (!isNaN(value)) {
-      role = await roleModel.getRoleById(value, company_id);
-    } else {
-      role = await roleModel.getRoleByName(value, company_id);
-    }
+    const role = await roleModel.getRoleById(id, company_id);
 
     if (!role) {
       return res.status(404).json({
@@ -71,8 +58,61 @@ exports.getRole = async (req, res) => {
       });
     }
 
+    res.json(role);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+// ✏️ UPDATE ROLE
+exports.updateRole = async (req, res) => {
+  try {
+    const company_id = req.user.company_id;
+    const { id } = req.params;
+    const { role_name } = req.body;
+
+    const role = await roleModel.getRoleById(id, company_id);
+
+    if (!role) {
+      return res.status(404).json({
+        message: "Role not found"
+      });
+    }
+
+    await roleModel.updateRole(id, role_name, company_id);
+
     res.json({
-      role
+      message: "Role updated successfully ✅"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+// ❌ DELETE ROLE
+exports.deleteRole = async (req, res) => {
+  try {
+    const company_id = req.user.company_id;
+    const { id } = req.params;
+
+    const role = await roleModel.getRoleById(id, company_id);
+
+    if (!role) {
+      return res.status(404).json({
+        message: "Role not found"
+      });
+    }
+
+    await roleModel.deleteRole(id, company_id);
+
+    res.json({
+      message: "Role deleted successfully ✅"
     });
 
   } catch (err) {

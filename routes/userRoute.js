@@ -1,28 +1,29 @@
-const router = require("express").Router();
+const express = require("express");
+const router = express.Router();
+
 const userController = require("../controllers/userController");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validateMiddleware");
 
-// 🔐 Middleware
-const { protect } = require("../middleware/authMiddleware");
+const {createUserSchema,loginUserSchema} = require("../validations/userValidation");
 
-// ✅ USER LOGIN
-router.post("/login", userController.loginUser);
 
-// ================= PROTECTED ROUTES =================
+// 🔥 CREATE USER
+router.post("/create",verifyToken,validate(createUserSchema),userController.createUser);
 
-// ✅ CREATE USER (company creates user)
-router.post("/create", protect, userController.createUser);
+// 🔐 LOGIN USER
+router.post("/login",verifyToken,validate(loginUserSchema),userController.loginUser);
 
-// ✅ GET ALL USERS (company-wise)
-router.get("/all", protect, userController.getAllUsers);
+// 📄 GET ALL USERS
+router.get("/",verifyToken,userController.getUsers);
 
-// ✅ GET USER BY ID
-router.get("/:id", protect, userController.getUserById);
+// 🔍 GET USER BY ID
+router.get("/:id",verifyToken,userController.getUserById);
 
-// ✅ UPDATE USER
-router.put("/update/:id", protect, userController.updateUser);
+// ✏️ UPDATE USER
+router.put("/:id",verifyToken,userController.updateUser);
 
-// ✅ DELETE USER
-router.delete("/delete/:id", protect, userController.deleteUser);
-
+// ❌ DELETE USER
+router.delete("/:id",verifyToken,userController.deleteUser);
 
 module.exports = router;

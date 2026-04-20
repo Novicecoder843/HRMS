@@ -1,19 +1,13 @@
-const deptModel = require("../models/departmentModel");
+const departmentModel = require("../models/departmentModel");
 
-// CREATE
+// ➕ CREATE
 exports.createDepartment = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { dept_name, description } = req.body;
-    const company_id = req.user.id;
 
-    if (!dept_name) {
-      return res.status(400).json({
-        message: "Department name required"
-      });
-    }
-
-    // 🔥 DUPLICATE CHECK
-    const existing = await deptModel.findDepartmentByName(
+    // check duplicate
+    const existing = await departmentModel.findDepartmentByName(
       dept_name,
       company_id
     );
@@ -24,71 +18,70 @@ exports.createDepartment = async (req, res) => {
       });
     }
 
-    const result = await deptModel.createDepartment({
-      company_id,
+    await departmentModel.createDepartment(
       dept_name,
-      description
-    });
+      description,
+      company_id
+    );
 
     res.status(201).json({
-      message: "Department created",
-      id: result.insertId
+      message: "Department created successfully ✅"
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// GET ALL
+
+
+// 📄 GET ALL
 exports.getDepartments = async (req, res) => {
   try {
-    const company_id = req.user.id;
+    const company_id = req.user.company_id;
 
-    const data = await deptModel.getDepartments(company_id);
+    const data = await departmentModel.getDepartments(company_id);
 
     res.json(data);
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
 
-// GET ONE
+
+// 🔍 GET BY ID
 exports.getDepartmentById = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { id } = req.params;
-    const company_id = req.user.id;
 
-    const dept = await deptModel.getDepartmentById(id, company_id);
+    const data = await departmentModel.getDepartmentById(id, company_id);
 
-    if (!dept) {
-      return res.status(404).json({ message: "Department not found" });
+    if (!data) {
+      return res.status(404).json({
+        message: "Department not found"
+      });
     }
 
-    res.json(dept);
+    res.json(data);
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// UPDATE
+
+
+// ✏️ UPDATE
 exports.updateDepartment = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { id } = req.params;
     const { dept_name, description } = req.body;
-    const company_id = req.user.id;
 
-    if (!dept_name && !description) {
-      return res.status(400).json({
-        message: "Nothing to update"
-      });
-    }
-
-    // 🔥 CHECK EXIST
-    const existing = await deptModel.getDepartmentById(id, company_id);
+    const existing = await departmentModel.getDepartmentById(id, company_id);
 
     if (!existing) {
       return res.status(404).json({
@@ -96,27 +89,31 @@ exports.updateDepartment = async (req, res) => {
       });
     }
 
-    await deptModel.updateDepartment(
+    await departmentModel.updateDepartment(
       id,
-      company_id,
       dept_name,
-      description
+      description,
+      company_id
     );
 
-    res.json({ message: "Department updated" });
+    res.json({
+      message: "Department updated successfully ✅"
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE
+
+
+// ❌ DELETE
 exports.deleteDepartment = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { id } = req.params;
-    const company_id = req.user.id;
 
-    const existing = await deptModel.getDepartmentById(id, company_id);
+    const existing = await departmentModel.getDepartmentById(id, company_id);
 
     if (!existing) {
       return res.status(404).json({
@@ -124,11 +121,13 @@ exports.deleteDepartment = async (req, res) => {
       });
     }
 
-    await deptModel.deleteDepartment(id, company_id);
+    await departmentModel.deleteDepartment(id, company_id);
 
-    res.json({ message: "Department deleted" });
+    res.json({
+      message: "Department deleted successfully ✅"
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

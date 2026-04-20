@@ -1,14 +1,25 @@
-const router = require("express").Router();
+const express = require("express");
+const router = express.Router();
+
 const roleController = require("../controllers/roleController");
-const { protect } = require("../middleware/authMiddleware");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validateMiddleware");
 
-// ✅ Create role
-router.post("/createroles", protect, roleController.createRole);
+const {createRoleSchema,updateRoleSchema} = require("../validations/roleValidation");
 
-// ✅ Get all roles
-router.get("/getroles", protect, roleController.getRoles);
+// CREATE
+router.post("/create",verifyToken,validate(createRoleSchema),roleController.createRole);
 
-// ✅ Get role by ID or name
-router.get("/:value", protect, roleController.getRole);
+// GET ALL
+router.get("/",verifyToken,roleController.getRoles);
+
+// GET BY ID
+router.get("/:id",verifyToken,roleController.getRoleById);
+
+// UPDATE
+router.put("/:id",verifyToken,validate(updateRoleSchema),roleController.updateRole);
+
+// DELETE
+router.delete("/:id",verifyToken,roleController.deleteRole);
 
 module.exports = router;

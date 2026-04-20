@@ -1,31 +1,24 @@
-const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const companyModel = require("../models/companyModel");
 
-// Register Company
+// 🟢 REGISTER COMPANY
 exports.registerCompany = async (req, res) => {
-
   try {
-    const { name, email, password, ALIAS , pincode , address, city } = req.body;
+    const { name, email, password, ALIAS, pincode, address, city } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "Name, email and password required"
-      });
-    }
-
-    const existingCompany = await companyModel.findByEmail(email);
-
-    if (existingCompany) {
+    // check existing
+    const existing = await companyModel.findByEmail(email);
+    if (existing) {
       return res.status(400).json({
         message: "Company already exists"
       });
     }
 
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await companyModel.registerCompany({
+    await companyModel.createCompany({
       name,
       email,
       password: hashedPassword,
@@ -36,17 +29,17 @@ exports.registerCompany = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Company created successfully"
+      message: "Company registered successfully ✅"
     });
 
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
+
+
+// 🔵 LOGIN COMPANY
 exports.loginCompany = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -54,95 +47,93 @@ exports.loginCompany = async (req, res) => {
     const company = await companyModel.findByEmail(email);
 
     if (!company) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(400).json({
+        message: "Company not found"
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, company.password);
+    const match = await bcrypt.compare(password, company.password);
 
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+    if (!match) {
+      return res.status(400).json({
+        message: "Invalid password"
+      });
     }
 
+    // 🔐 TOKEN
     const token = jwt.sign(
       {
-        id: company.id,
+        company_id: company.id,
         email: company.email,
+        name: company.name
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: process.env.JWT_EXPIRE }
     );
-
-    res.json({
-      message: "Login successful",
-      token
+''
+   res.json({
+      message: "Login successful ✅",
+      token,
+      company: {
+        id: company.id,
+        name: company.name,
+        email: company.email
+      }
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-// Company Profile
+
+
+// 🟡 GET COMPANY PROFILE
 exports.getCompanyProfile = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
 
-    const company = await companyModel.getCompanyById(req.user.id);
+    const company = await companyModel.findById(company_id);
 
-    res.json({
-      company
-    });
+    res.json(company);
 
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Server error"
-    });
-
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
-// Update Company Profile
+
+// 🟠 UPDATE COMPANY
+
 
 exports.updateCompany = async (req, res) => {
   try {
-    const companyId = req.user.id;
-    const existingCompany = await companyModel.getCompanyById(companyId);
+    const company_id = req.user.company_id;
 
-    if (!existingCompany) {
+    const existing = await companyModel.findById(company_id);
+
+    if (!existing) {
       return res.status(404).json({
         message: "Company not found"
       });
     }
 
-    // take only allowed fields
-    const { name, ALIAS, pincode, address, city } = req.body;
+    // ✅ KEEP OLD VALUE IF NOT PROVIDED
+    const updatedData = {
+      name: req.body.name ?? existing.name,
+      ALIAS: req.body.ALIAS ?? existing.ALIAS,
+      pincode: req.body.pincode ?? existing.pincode,
+      address: req.body.address ?? existing.address,
+      city: req.body.city ?? existing.city
+    };
 
-    // prepare update data (only if provided)
-    const updateData = {};
-
-    if (name !== undefined) updateData.name = name;
-    if (ALIAS !== undefined) updateData.ALIAS = ALIAS;
-    if (pincode !== undefined) updateData.pincode = pincode;
-    if (address !== undefined) updateData.address = address;
-    if (city !== undefined) updateData.city = city;
-
-    // check if nothing to update
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({
-        message: "No data provided to update"
-      });
-    }
-
-    await companyModel.updateCompany(companyId, updateData);
+    await companyModel.updateCompany(company_id, updatedData);
 
     res.json({
-      message: "Company updated successfully"
+      message: "Company updated successfully ✅"
     });
 
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

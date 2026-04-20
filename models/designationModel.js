@@ -1,91 +1,65 @@
 const db = require("../config/db");
 
-
-// ✅ CREATE
-exports.createDesignation = async ({
-  company_id,
-  department_id,
-  desig_name,
-  description
-}) => {
-  const [result] = await db.query(
-    `INSERT INTO designations 
-     (company_id, department_id, desig_name, description)
+// ➕ CREATE
+exports.createDesignation = async (desig_name, dept_id, description, company_id) => {
+  return db.execute(
+    `INSERT INTO designations (desig_name, dept_id, description, company_id)
      VALUES (?, ?, ?, ?)`,
-    [company_id, department_id, desig_name, description]
+    [desig_name, dept_id, description || null, company_id]
   );
-
-  return result;
 };
 
-
-
-// ✅ 🔥 FIND DUPLICATE (VERY IMPORTANT)
-exports.findDesignation = async (desig_name, department_id, company_id) => {
-  const [rows] = await db.query(
+// 🔍 DUPLICATE CHECK
+exports.findDesignationByName = async (desig_name, dept_id, company_id) => {
+  const [rows] = await db.execute(
     `SELECT * FROM designations 
-     WHERE desig_name = ? 
-     AND department_id <=> ? 
-     AND company_id = ?`,
-    [desig_name, department_id, company_id]
+     WHERE desig_name = ? AND dept_id = ? AND company_id = ?`,
+    [desig_name, dept_id, company_id]
   );
   return rows[0];
 };
 
-
-
-// ✅ GET ALL (COMPANY SAFE)
-exports.getDesignations = async (company_id, department_id) => {
-  const [rows] = await db.query(
-    `SELECT d.*, dept.dept_name 
-     FROM designations d
-     LEFT JOIN departments dept 
-     ON d.department_id = dept.id
-     WHERE d.company_id = ? AND d.department_id = ?`,
-    [company_id, department_id]
+// 📄 GET ALL
+exports.getDesignations = async (company_id) => {
+  const [rows] = await db.execute(
+    "SELECT * FROM designations WHERE company_id = ?",
+    [company_id]
   );
   return rows;
 };
 
-
-
-// ✅ GET BY ID (SAFE)
+// 🔍 GET BY ID
 exports.getDesignationById = async (id, company_id) => {
-  const [rows] = await db.query(
-    `SELECT * FROM designations 
-     WHERE id = ? AND company_id = ?`,
+  const [rows] = await db.execute(
+    "SELECT * FROM designations WHERE id = ? AND company_id = ?",
     [id, company_id]
   );
   return rows[0];
 };
 
-
-
-// ✅ UPDATE (SAFE)
-exports.updateDesignation = async (
-  id,
-  company_id,
-  desig_name,
-  description,
-  department_id
-) => {
-  const [result] = await db.query(
+// ✏️ UPDATE
+exports.updateDesignation = async (id, desig_name, dept_id, description, company_id) => {
+  return db.execute(
     `UPDATE designations 
-     SET desig_name = ?, description = ?, department_id = ?
+     SET desig_name = ?, dept_id = ?, description = ?
      WHERE id = ? AND company_id = ?`,
-    [desig_name, description, department_id, id, company_id]
+    [desig_name, dept_id, description || null, id, company_id]
   );
-  return result;
 };
 
-
-
-// ✅ DELETE (SAFE)
+// ❌ DELETE
 exports.deleteDesignation = async (id, company_id) => {
-  const [result] = await db.query(
-    `DELETE FROM designations 
-     WHERE id = ? AND company_id = ?`,
+  return db.execute(
+    "DELETE FROM designations WHERE id = ? AND company_id = ?",
     [id, company_id]
   );
-  return result;
+};
+
+// 🔐 CHECK DEPARTMENT
+exports.checkDepartment = async (dept_id, company_id) => {
+  const [rows] = await db.execute(
+    "SELECT id FROM departments WHERE id = ? AND company_id = ?",
+    [dept_id, company_id]
+  );
+  return rows.length;
 };

@@ -1,21 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const desigController = require("../controllers/designationController");
-const { protect } = require("../middleware/authMiddleware"); 
 
-// ✅ CREATE DESIGNATION
-router.post("/create", protect, desigController.createDesignation);
+const designationController = require("../controllers/designationController");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validateMiddleware");
 
-// ✅ GET DESIGNATIONS BY DEPARTMENT
-router.get("/department/:department_id", protect, desigController.getDesignations);
+const {createDesignationSchema,updateDesignationSchema} = require("../validations/designationValidation");
 
-// ✅ GET SINGLE DESIGNATION
-router.get("/:id", protect, desigController.getDesignationById);
+// CREATE
+router.post("/create",verifyToken,validate(createDesignationSchema),designationController.createDesignation);
 
-// ✅ UPDATE DESIGNATION
-router.put("/:id", protect, desigController.updateDesignation);
+// GET ALL
+router.get("/",verifyToken,designationController.getDesignations);
 
-// ✅ DELETE DESIGNATION
-router.delete("/:id", protect, desigController.deleteDesignation);
+// GET BY ID
+router.get("/:id",verifyToken,designationController.getDesignationById);
+
+// UPDATE
+router.put("/:id",verifyToken,validate(updateDesignationSchema),designationController.updateDesignation);
+
+// DELETE
+router.delete("/:id",verifyToken,designationController.deleteDesignation);
 
 module.exports = router;

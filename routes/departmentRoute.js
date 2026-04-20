@@ -1,21 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const deptController = require("../controllers/departmentController");
-const { protect } = require("../middleware/authMiddleware");
 
-// ✅ CREATE DEPARTMENT
-router.post("/create", protect, deptController.createDepartment);
+const departmentController = require("../controllers/departmentController");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validateMiddleware");
 
-// ✅ GET ALL DEPARTMENTS (from token company)
-router.get("/", protect, deptController.getDepartments);
+const {createDepartmentSchema,updateDepartmentSchema} = require("../validations/departmentValidation");
 
-// ✅ GET SINGLE DEPARTMENT
-router.get("/:id", protect, deptController.getDepartmentById);
+// CREATE
+router.post("/create",verifyToken,validate(createDepartmentSchema),departmentController.createDepartment);
 
-// ✅ UPDATE DEPARTMENT
-router.put("/:id", protect, deptController.updateDepartment);
+// GET ALL
+router.get("/",verifyToken,departmentController.getDepartments);
 
-// ✅ DELETE DEPARTMENT
-router.delete("/:id", protect, deptController.deleteDepartment);
+// GET BY ID
+router.get("/:id",verifyToken,departmentController.getDepartmentById);
+
+// UPDATE
+router.put("/:id",verifyToken,validate(updateDepartmentSchema),departmentController.updateDepartment);
+
+// DELETE
+router.delete("/:id",verifyToken,departmentController.deleteDepartment);
 
 module.exports = router;

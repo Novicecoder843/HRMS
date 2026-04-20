@@ -1,164 +1,88 @@
-const desigModel = require("../models/designationModel");
-const db = require("../config/db");
+const designationModel = require("../models/designationModel");
 
-// ✅ CREATE
+// ➕ CREATE
 exports.createDesignation = async (req, res) => {
   try {
-    const { department_id, desig_name, description } = req.body;
-    const company_id = req.user.id;
+    const company_id = req.user.company_id;
+    const { desig_name, dept_id, description } = req.body;
 
-    if (!desig_name) {
+    // 🔍 DEBUG
+    console.log("Creating designation:", desig_name, dept_id, company_id);
+
+    // ✅ DEPARTMENT CHECK
+    const deptExists = await designationModel.checkDepartment(dept_id, company_id);
+
+    if (!deptExists) {
       return res.status(400).json({
-        message: "Designation name required"
+        message: "Department does not belong to your company"
       });
     }
 
-    // 🔥 VALIDATE DEPARTMENT (if provided)
-    if (department_id) {
-      const [dept] = await db.query(
-        `SELECT * FROM departments 
-         WHERE id = ? AND company_id = ?`,
-        [department_id, company_id]
-      );
-
-      if (dept.length === 0) {
-        return res.status(400).json({
-          message: "Invalid department"
-        });
-      }
-    }
-
-    // 🔥 DUPLICATE CHECK
-    const existing = await desigModel.findDesignation(
+    // ✅ DUPLICATE CHECK
+    const existing = await designationModel.findDesignationByName(
       desig_name,
-      department_id,
+      dept_id,
       company_id
     );
 
     if (existing) {
       return res.status(400).json({
-        message: "Designation already exists"
+        message: "Designation already exists in this department"
       });
     }
 
-    const result = await desigModel.createDesignation({
-      company_id,
-      department_id,
+    await designationModel.createDesignation(
       desig_name,
-      description
-    });
-
-    res.status(201).json({
-      message: "Designation created",
-      id: result.insertId
-    });
-
-  } catch (err) {
-
-    // 🔥 HANDLE DB DUPLICATE ERROR
-    if (err.code === "ER_DUP_ENTRY") {
-      return res.status(400).json({
-        message: "Designation already exists"
-      });
-    }
-
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// GET ALL Designation by Department id
-exports.getDesignations = async (req, res) => {
-  try {
-    const company_id = req.user.id;
-    const { department_id } = req.params; 
-
-    const data = await desigModel.getDesignations(company_id, department_id);
-
-    res.json(data);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// GET ONE Designation by ID
-
-exports.getDesignationById = async (req, res) => {
-  try {
-    const company_id = req.user.id;
-    const { id } = req.params;
-
-    const data = await desigModel.getDesignationById(id, company_id);
-
-    if (!data) {
-      return res.status(404).json({
-        message: "Designation not found"
-      });
-    }
-
-    res.json(data);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-
-//UPDATE (SAFE)
-exports.updateDesignation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { desig_name, description, department_id } = req.body;
-    const company_id = req.user.id;
-
-    // 🔥 CHECK EXIST
-    const existing = await desigModel.getDesignationById(id, company_id);
-
-    if (!existing) {
-      return res.status(404).json({
-        message: "Designation not found"
-      });
-    }
-
-    // 🔥 DUPLICATE CHECK (if name updated)
-    if (desig_name) {
-      const duplicate = await desigModel.findDesignation(
-        desig_name,
-        department_id || existing.department_id,
-        company_id
-      );
-
-      if (duplicate && duplicate.id !== parseInt(id)) {
-        return res.status(400).json({
-          message: "Designation already exists"
-        });
-      }
-    }
-
-    await desigModel.updateDesignation(
-      id,
-      company_id,
-      desig_name || existing.desig_name,
-      description || existing.description,
-      department_id || existing.department_id
+      dept_id,
+      description,
+      company_id
     );
 
-    res.json({ message: "Designation updated" });
+    res.status(201).json({
+      message: "Designation created successfully ✅"
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
 
 
-// ✅ DELETE (SAFE)
-exports.deleteDesignation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const company_id = req.user.id;
+// 📄 GET ALL
+exports.getDesignations = async (req, res) => {
+  const data = await designationModel.getDesignations(req.user.company_id);
+  res.json(data);
+};
 
-    const existing = await desigModel.getDesignationById(id, company_id);
+
+
+// 🔍 GET BY ID
+exports.getDesignationById = async (req, res) => {
+  const data = await designationModel.getDesignationById(
+    req.params.id,
+    req.user.company_id
+  );
+
+  if (!data) {
+    return res.status(404).json({
+      message: "Designation not found"
+    });
+  }
+
+  res.json(data);
+};
+
+
+
+// ✏️ UPDATE
+exports.updateDesignation = async (req, res) => {
+  try {
+    const company_id = req.user.company_id;
+    const { id } = req.params;
+    const { desig_name, dept_id, description } = req.body;
+
+    const existing = await designationModel.getDesignationById(id, company_id);
 
     if (!existing) {
       return res.status(404).json({
@@ -166,11 +90,51 @@ exports.deleteDesignation = async (req, res) => {
       });
     }
 
-    await desigModel.deleteDesignation(id, company_id);
+    const deptExists = await designationModel.checkDepartment(dept_id, company_id);
 
-    res.json({ message: "Designation deleted" });
+    if (!deptExists) {
+      return res.status(400).json({
+        message: "Department does not belong to your company"
+      });
+    }
+
+    await designationModel.updateDesignation(
+      id,
+      desig_name,
+      dept_id,
+      description,
+      company_id
+    );
+
+    res.json({
+      message: "Designation updated successfully ✅"
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
+};
+
+
+
+// ❌ DELETE
+exports.deleteDesignation = async (req, res) => {
+  const company_id = req.user.company_id;
+
+  const existing = await designationModel.getDesignationById(
+    req.params.id,
+    company_id
+  );
+
+  if (!existing) {
+    return res.status(404).json({
+      message: "Designation not found"
+    });
+  }
+
+  await designationModel.deleteDesignation(req.params.id, company_id);
+
+  res.json({
+    message: "Designation deleted successfully ✅"
+  });
 };
