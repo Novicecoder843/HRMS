@@ -2,28 +2,36 @@ const express = require("express");
 const router = express.Router();
 
 const userController = require("../controllers/userController");
-const { verifyToken } = require("../middleware/authMiddleware");
+
+const { verifyToken, verifyUser } = require("../middleware/authMiddleware");
+const { checkPermission } = require("../middleware/permissionMiddleware");
 const { validate } = require("../middleware/validateMiddleware");
 
-const {createUserSchema,loginUserSchema} = require("../validations/userValidation");
+const {createUserSchema,loginUserSchema,updateUserSchema} = require("../validations/userValidation");
 
 
-// 🔥 CREATE USER
-router.post("/create",verifyToken,validate(createUserSchema),userController.createUser);
+// CREATE FIRST ADMIN (Company Token)
+router.post("/create-admin", verifyToken,userController.createAdmin);
 
-// 🔐 LOGIN USER
-router.post("/login",verifyToken,validate(loginUserSchema),userController.loginUser);
+// LOGIN USER
+router.post("/login",validate(loginUserSchema), userController.loginUser);
 
-// 📄 GET ALL USERS
-router.get("/",verifyToken,userController.getUsers);
+// 🔒 RBAC (USER TOKEN)
 
-// 🔍 GET USER BY ID
-router.get("/:id",verifyToken,userController.getUserById);
+// CREATE USER (Admin / HR)
+router.post("/create",verifyToken,verifyUser,validate(createUserSchema),checkPermission("CREATE_USER"),userController.createUser);
 
-// ✏️ UPDATE USER
-router.put("/:id",verifyToken,userController.updateUser);
+// GET ALL USERS
+router.get("/",verifyToken,verifyUser,checkPermission("VIEW_USER"),userController.getUsers);
 
-// ❌ DELETE USER
-router.delete("/:id",verifyToken,userController.deleteUser);
+// GET USER BY ID
+router.get("/:id",verifyToken,verifyUser,checkPermission("VIEW_USER"),userController.getUserById
+);
+
+// UPDATE USER
+router.put("/:id",verifyToken,verifyUser,validate(updateUserSchema),checkPermission("UPDATE_USER"),userController.updateUser);
+
+// DELETE USER
+router.delete("/:id",verifyToken, verifyUser,checkPermission("DELETE_USER"),userController.deleteUser);
 
 module.exports = router;

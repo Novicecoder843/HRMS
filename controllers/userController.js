@@ -4,10 +4,115 @@ const userModel = require("../models/userModel");
 const generateEmpCode = require("../utils/generateEmpCode");
 
 
-// ✅ CREATE USER
-exports.createUser = async (req, res) => {
+// =======================================================
+// 🏢 CREATE ADMIN (MANUAL ROLE_ID)
+// =======================================================
+exports.createAdmin = async (req, res) => {
   try {
     const company_id = req.user.company_id;
+    const { first_name, last_name, email, password, phone_no, role_id } = req.body;
+
+    // 🔥 VALIDATE ROLE
+    const role = await userModel.getRoleByIdAndCompany(role_id, company_id);
+
+    if (!role) {
+      return res.status(400).json({
+        message: "Invalid role for this company ❌"
+      });
+    }
+
+    // 🔥 ONLY ADMIN ROLE ALLOWED
+    if (role.role_name !== "Admin") {
+      return res.status(400).json({
+        message: "Only Admin role allowed ❌"
+      });
+    }
+
+    // ❌ prevent duplicate admin
+    const existing = await userModel.findAdminByCompany(company_id, role_id);
+    if (existing) {
+      return res.status(400).json({
+        message: "Admin already exists ❌"
+      });
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    const emp_code = await generateEmpCode(company_id);
+
+    await userModel.createUser({
+      emp_code,
+      first_name,
+      last_name,
+      email,
+      phone_no,
+      password_hash,
+      role_id,
+      company_id,
+      dept_id: null,
+      designation_id: null,
+      date_of_joining: new Date(),
+      date_of_exit: null
+    });
+
+    res.status(201).json({
+      message: "Admin created successfully ✅"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+
+// =======================================================
+// 🔐 LOGIN USER
+// =======================================================
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await userModel.findByEmailGlobal(email);
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid credentials ❌"
+      });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+
+    if (!match) {
+      return res.status(400).json({
+        message: "Invalid credentials ❌"
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        user_id: user.id,
+        company_id: user.company_id,
+        role_id: user.role_id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ token });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+// =======================================================
+// 🔥 CREATE USER (RBAC + DYNAMIC ROLE CHECK)
+// =======================================================
+exports.createUser = async (req, res) => {
+  try {
+    const { company_id, role_id: creatorRoleId } = req.user;
 
     const {
       first_name,
@@ -18,47 +123,34 @@ exports.createUser = async (req, res) => {
       role_id,
       dept_id,
       designation_id,
-      date_of_joining,
-      date_of_exit
+      date_of_joining
     } = req.body;
-    
 
-    // ✅ CHECK EMAIL
+    // 🔥 get role names dynamically
+    const creatorRole = await userModel.getRoleById(creatorRoleId);
+    const targetRole = await userModel.getRoleById(role_id);
+
+    // ❌ HR cannot create Admin
+    if (
+      creatorRole?.role_name === "HR" &&
+      targetRole?.role_name === "Admin"
+    ) {
+      return res.status(403).json({
+        message: "HR cannot create Admin ❌"
+      });
+    }
+
+    // ❌ duplicate email
     const exists = await userModel.findByEmail(email, company_id);
     if (exists) {
       return res.status(400).json({
-        message: "Email already exists"
+        message: "Email already exists ❌"
       });
     }
 
-    // ✅ ROLE CHECK
-    if (!(await userModel.checkRole(role_id, company_id))) {
-      return res.status(400).json({
-        message: "Invalid role"
-      });
-    }
-
-    // ✅ DEPARTMENT CHECK
-    if (!(await userModel.checkDepartment(dept_id, company_id))) {
-      return res.status(400).json({
-        message: "Invalid department"
-      });
-    }
-
-    // ✅ DESIGNATION CHECK
-    if (!(await userModel.checkDesignation(designation_id, dept_id, company_id))) {
-      return res.status(400).json({
-        message: "Invalid designation"
-      });
-    }
-
-    // 🔐 HASH PASSWORD
     const password_hash = await bcrypt.hash(password, 10);
-
-    // 🔢 GENERATE EMP CODE
     const emp_code = await generateEmpCode(company_id);
 
-    // ✅ INSERT USER (CLEAN DATA ONLY)
     await userModel.createUser({
       emp_code,
       first_name,
@@ -68,51 +160,15 @@ exports.createUser = async (req, res) => {
       password_hash,
       role_id,
       company_id,
-      dept_id,
-      designation_id,
+      dept_id: dept_id || null,
+      designation_id: designation_id || null,
       date_of_joining,
-      date_of_exit: date_of_exit || null
+      date_of_exit: null
     });
 
     res.status(201).json({
-      message: "User created successfully ✅",
-      emp_code
+      message: "User created successfully ✅"
     });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: err.message
-    });
-  }
-};
-
-
-// ✅ LOGIN USER
-exports.loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const company_id = req.user.company_id;
-
-    const user = await userModel.findByEmail(email, company_id);
-
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    const match = await bcrypt.compare(password, user.password_hash);
-
-    if (!match) {
-      return res.status(400).json({ message: "Invalid password" });
-    }
-
-    const token = jwt.sign(
-      { user_id: user.id, company_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.json({ message: "Login success", token });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -121,15 +177,18 @@ exports.loginUser = async (req, res) => {
 
 
 
-// ✅ GET ALL USERS
+// =======================================================
+// 📄 GET USERS
+// =======================================================
 exports.getUsers = async (req, res) => {
   const users = await userModel.getAllUsers(req.user.company_id);
   res.json(users);
 };
 
 
-
-// ✅ GET USER BY ID
+// =======================================================
+// 🔍 GET USER BY ID
+// =======================================================
 exports.getUserById = async (req, res) => {
   const user = await userModel.getUserById(
     req.params.id,
@@ -137,34 +196,41 @@ exports.getUserById = async (req, res) => {
   );
 
   if (!user) {
-    return res.status(404).json({ message: "User not found" });
+    return res.status(404).json({
+      message: "User not found ❌"
+    });
   }
 
   res.json(user);
 };
 
 
-
-// ✅ UPDATE USER
+// =======================================================
+// ✏️ UPDATE USER
+// =======================================================
 exports.updateUser = async (req, res) => {
-  const company_id = req.user.company_id;
-  const { id } = req.params;
+  await userModel.updateUser(
+    req.params.id,
+    req.body,
+    req.user.company_id
+  );
 
-  const user = await userModel.getUserById(id, company_id);
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  await userModel.updateUser(id, req.body, company_id);
-
-  res.json({ message: "User updated" });
+  res.json({
+    message: "User updated ✅"
+  });
 };
 
 
-
-// ✅ DELETE USER
+// =======================================================
+// ❌ DELETE USER
+// =======================================================
 exports.deleteUser = async (req, res) => {
-  await userModel.deleteUser(req.params.id, req.user.company_id);
-  res.json({ message: "User deleted" });
+  await userModel.softDeleteUser(
+    req.params.id,
+    req.user.company_id
+  );
+
+  res.json({
+    message: "User deleted ✅"
+  });
 };
