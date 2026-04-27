@@ -21,6 +21,7 @@ app.use("/api/roles", require("./routes/roleRoute"));
 app.use("/api/users", require("./routes/userRoute"));
 app.use("/api/departments", require("./routes/departmentRoute"));
 app.use("/api/designations", require("./routes/designationRoute"));
+app.use("/api/attendances",require("./routes/attendanceRoute"));
 
 
 // ✅ HEALTH CHECK
