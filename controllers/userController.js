@@ -113,10 +113,6 @@ exports.loginUser = async (req, res) => {
 };
 
 
-
-// =======================================================
-// 🔥 CREATE USER (RBAC + DYNAMIC ROLE CHECK)
-// =======================================================
 exports.createUser = async (req, res) => {
   try {
     const { company_id, role_id: creatorRoleId } = req.user;
@@ -133,11 +129,60 @@ exports.createUser = async (req, res) => {
       date_of_joining
     } = req.body;
 
-    // 🔥 get role names dynamically
-    const creatorRole = await userModel.getRoleById(creatorRoleId);
-    const targetRole = await userModel.getRoleById(role_id);
+    // =======================================================
+    // 🔥 1. VALIDATE ROLE (VERY IMPORTANT)
+    // =======================================================
+    const targetRole = await userModel.getRoleByIdAndCompany(role_id, company_id);
 
-    // ❌ HR cannot create Admin
+    if (!targetRole) {
+      return res.status(400).json({
+        message: "Invalid role for this company ❌"
+      });
+    }
+
+    // =======================================================
+    // 🔥 2. VALIDATE DEPARTMENT
+    // =======================================================
+    if (dept_id) {
+      const dept = await userModel.getDepartmentById(dept_id);
+
+      if (!dept || dept.company_id !== company_id) {
+        return res.status(400).json({
+          message: "Invalid department ❌"
+        });
+      }
+    }
+
+    // =======================================================
+    // 🔥 3. VALIDATE DESIGNATION (YOUR MAIN BUG FIX)
+    // =======================================================
+    if (designation_id) {
+      const designation = await userModel.getDesignationById(designation_id);
+
+      if (!designation) {
+        return res.status(400).json({
+          message: "Invalid designation ❌"
+        });
+      }
+
+      if (designation.company_id !== company_id) {
+        return res.status(400).json({
+          message: "Designation does not belong to your company ❌"
+        });
+      }
+
+      if (dept_id && designation.dept_id !== dept_id) {
+        return res.status(400).json({
+          message: "Designation does not belong to selected department ❌"
+        });
+      }
+    }
+
+    // =======================================================
+    // 🔥 4. RBAC CHECK
+    // =======================================================
+    const creatorRole = await userModel.getRoleById(creatorRoleId);
+
     if (
       creatorRole?.role_name === "HR" &&
       targetRole?.role_name === "Admin"
@@ -147,14 +192,20 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // ❌ duplicate email
+    // =======================================================
+    // 🔥 5. DUPLICATE EMAIL
+    // =======================================================
     const exists = await userModel.findByEmail(email, company_id);
+
     if (exists) {
       return res.status(400).json({
         message: "Email already exists ❌"
       });
     }
 
+    // =======================================================
+    // 🔥 6. CREATE USER
+    // =======================================================
     const password_hash = await bcrypt.hash(password, 10);
     const emp_code = await generateEmpCode(company_id);
 

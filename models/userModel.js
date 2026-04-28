@@ -89,6 +89,25 @@ exports.getUserById = async (id, company_id) => {
   return rows[0];
 };
 
+// 🔍 GET DEPARTMENT BY ID
+
+exports.getDepartmentById = async (dept_id) => {
+  const [rows] = await db.execute(
+    "SELECT * FROM departments WHERE id = ?",
+    [dept_id]
+  );
+  return rows[0];
+};
+
+// 🔍 GET DESIGNATION BY ID
+
+exports.getDesignationById = async (designation_id) => {
+  const [rows] = await db.execute(
+    "SELECT * FROM designations WHERE id = ?",
+    [designation_id]
+  );
+  return rows[0];
+};
 
 // ✏️ UPDATE USER
 exports.updateUser = async (id, data, company_id) => {
