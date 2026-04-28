@@ -1,5 +1,13 @@
 const attendanceModel = require("../models/attendanceModel");
 
+// 🔥 FORMAT DATE (UTC → IST)
+const formatDate = (date) => {
+  if (!date) return null;
+  return new Date(date).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata"
+  });
+};
+
 // ✅ CHECK-IN
 exports.checkIn = async (req, res) => {
   try {
@@ -51,7 +59,6 @@ exports.checkOut = async (req, res) => {
   }
 };
 
-
 // 📄 MY ATTENDANCE
 exports.getMyAttendance = async (req, res) => {
   try {
@@ -59,7 +66,14 @@ exports.getMyAttendance = async (req, res) => {
 
     const data = await attendanceModel.getMyAttendance(user_id);
 
-    res.json(data);
+    const formatted = data.map((item) => ({
+      ...item,
+      check_in: formatDate(item.check_in),
+      check_out: formatDate(item.check_out),
+      date: formatDate(item.date)
+    }));
+
+    res.json(formatted);
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -67,14 +81,21 @@ exports.getMyAttendance = async (req, res) => {
 };
 
 
-// 👥 COMPANY / TEAM ATTENDANCE (RBAC)
+// 👥 ALL ATTENDANCE (RBAC)
 exports.getAllAttendance = async (req, res) => {
   try {
     const { company_id } = req.user;
 
     const data = await attendanceModel.getCompanyAttendance(company_id);
 
-    res.json(data);
+    const formatted = data.map((item) => ({
+      ...item,
+      check_in: formatDate(item.check_in),
+      check_out: formatDate(item.check_out),
+      date: formatDate(item.date)
+    }));
+
+    res.json(formatted);
 
   } catch (err) {
     res.status(500).json({ message: err.message });
